@@ -1,9 +1,0 @@
-<launch>
-
-  <group ns="$(arg veh)">  
-  
-    <node pkg="lanefollowing_test" type="lanefollowing_testNode.py" name="lanefollowing_testNode" output="screen"/>
-
-  </group>
-   
-</launch>

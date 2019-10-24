@@ -1,9 +1,9 @@
 <launch>
 
-  <include file="$(find my_lanefollowing)/launch/lane_following.launch"/>
+  <include file="$(find dynamic_obstacle_avoidance)/launch/lane_following.launch"/>
 
   <group ns="$(arg veh)">
-    <node pkg="my_lanefollowing" type="set_doffset.py" name="set_doffset" output="screen"/>
+    <node pkg="dynamic_obstacle_avoidance" type="set_doffset.py" name="set_doffset" output="screen"/>
   </group>
 
 </launch>
