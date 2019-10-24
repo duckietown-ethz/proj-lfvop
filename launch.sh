@@ -4,4 +4,4 @@ set -e
 
 # YOUR CODE BELOW THIS LINE
 # ----------------------------------------------------------------------------
-# roslaunch my_lanefollowing my_lanefollowing.launch veh:=$VEHICLE_NAME
+roslaunch dynamic_obstacle_avoidance my_lanefollowing.launch veh:=$VEHICLE_NAME
