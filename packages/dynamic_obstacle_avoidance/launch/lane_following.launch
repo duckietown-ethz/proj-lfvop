@@ -17,5 +17,6 @@
 		<arg name="ai_interval" value="$(arg ai_interval)"/>
 		<arg name="/lane_following/stop_line_filter" default="false" /> <!-- will not every allow a transition into COORDINATION mode -->
 		<arg name="vehicle_avoidance" default="true"/>
+		<arg name="/vehicle_avoidance/control" default="false"/> <!--set to false so that we can activate our own overtake controller-->
 	</include>
 </launch>

@@ -3,7 +3,7 @@
 import os
 import rospy
 from duckietown import DTROS
-from std_msgs.msg import String, Float64
+from std_msgs.msg import String, Float64, Float32
 from duckietown_msgs.msg import BoolStamped
 
 
@@ -27,11 +27,16 @@ class MyNode(DTROS):
             self.offset = 0.0
 
         # construct publisher
-        self.pub = rospy.Publisher('lane_controller_node/doffset', Float64, queue_size=1)
-        self.sub = rospy.Subscriber('/%s/vehicle_detection_node/detection' %self.veh_name,BoolStamped, self.cbOvertake, queue_size=1)
+        self.pub_doffset = rospy.Publisher('lane_controller_node/doffset', Float64, queue_size=1)
+        #self.sub_bumper = rospy.Subscriber('/%s/vehicle_detection_node/detection' %self.veh_name,BoolStamped, self.cbOvertake, queue_size=1)
+        self.sub_led = rospy.Subscriber('/%s/led_detection_node/detection' %self.veh_name,BoolStamped, self.cbOvertake, queue_size=1)
+        self.sub_vehicle_distance = rospy.Subscriber('/%s/led_detection_node/detected_vehicle_distance' %self.veh_name,Float32, self.cbVehDist, queue_size=1)
+
+    def cbVehDist(self,msg):
+        self.vehDist=msg.data
 
     def cbOvertake(self,msg):
-        if msg.data:
+        if msg.data and self.vehDist<0.3:
             print "detected vehicle"
             self.offset =  0.2175/4*1 #write
             rospy.sleep(0.5)
@@ -56,7 +61,7 @@ class MyNode(DTROS):
         while not rospy.is_shutdown():
             message = self.offset
             #rospy.loginfo("Offset published: '%f'" % message)
-            self.pub.publish(message)
+            self.pub_doffset.publish(message)
             rate.sleep()
 
 if __name__ == '__main__':
