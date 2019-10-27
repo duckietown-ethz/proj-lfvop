@@ -14,15 +14,17 @@ class MyNode(DTROS):
         super(MyNode, self).__init__(node_name=node_name)
 
         self.veh_name = rospy.get_namespace().strip("/")
+        self.stepsize = 20
+        self.lanewidth = 0.2175
 
         offset_mode = 0
         offset_mode = int(os.environ['OFFSET'])
         if offset_mode == 0:
             self.offset = 0.0
         elif offset_mode == 1:
-            self.offset = 0.2175    # lane distance
+            self.offset = self.lanewidth    # lane distance
         elif offset_mode == 2:
-            self.offset = 0.115     # middle of the road
+            self.offset = self.lanewidth/2     # middle of the road
         else:
             self.offset = 0.0
 
@@ -37,22 +39,16 @@ class MyNode(DTROS):
 
     def cbOvertake(self,msg):
         if msg.data and self.vehDist<0.3:
-            print "detected vehicle"
-            self.offset =  0.2175/4*1 #write
-            rospy.sleep(0.5)
-            self.offset =  0.2175/4*2 #write
-            rospy.sleep(0.5)
-            self.offset =  0.2175/4*3 #write
-            rospy.sleep(0.5)
-            self.offset =  0.2175/4*4 #write
+            print "overtaking now!"
+            for i in range(0,self.stepsize):
+                self.offset += self.lanewidth/float(self.stepsize) #write
+                rospy.sleep(0.1)
+
             rospy.sleep(7.)
             print "going back to the right lane"
-            self.offset =  0.2175/4*3 #write
-            rospy.sleep(0.5)
-            self.offset =  0.2175/4*2 #write
-            rospy.sleep(0.5)
-            self.offset =  0.2175/4*1 #write
-            rospy.sleep(0.5)
+            for i in range(0,self.stepsize):
+                self.offset -= self.lanewidth/float(self.stepsize) #write
+                rospy.sleep(0.1)
             self.offset =  0.0
 
     def run(self):

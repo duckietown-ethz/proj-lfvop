@@ -107,72 +107,69 @@ class LEDDetectionNode(object):
             print e
 
         start = rospy.Time.now()
+
         cv_image1 = cv2.cvtColor(cv_image, cv2.COLOR_BGR2GRAY)
-		cv_image1 = cv_image1[cv_image1.shape[0]/4:cv_image1.shape[0]/4*3]
+        cv_image1 = cv_image1[cv_image1.shape[0]/4:cv_image1.shape[0]/4*3]
+
+        ret,cv_image = cv2.threshold(cv_image1,220,255,cv2.THRESH_BINARY)
+
+        # Set up the detector with default parameters.
+        params = cv2.SimpleBlobDetector_Params()
+        params.minThreshold = 10;    # the graylevel of images
+        params.maxThreshold = 200;
+
+        params.filterByColor = True
+        params.blobColor = 255
+
+        # Filter by Area
+        params.filterByArea = False
+        params.minArea = 10000
+        params.filterByInertia = False
+        params.filterByConvexity = False
+        params.filterByCircularity = True
+        params.minCircularity = 0.1
+        detector = cv2.SimpleBlobDetector_create(params)
+
+        # Detect blobs.
+        keypoints = detector.detect(cv_image)
 
 
+        #print(keypoints[0].pt)
+        x1=0
+        x2=0
+        y1=0
+        y2=0
+        carfound=0
+        for key1 in keypoints:
+            for key2 in keypoints:
+                if key1!=key2:
+                    if abs((key1.size-key2.size)/key1.size)<0.4: #same size keys maybe change parameter
+                        if abs((key1.pt[1]-key2.pt[1]))<key1.size/1: #same y coordinate maybe change parameter
+                            dist=abs((key1.pt[0]-key2.pt[0]))
+                            #print(dist)
+                            #print(key1.size*4+key1.size)
+                            if dist>key1.size*4+key1.size and dist <key1.size*10+key1.size: #roughly right distance compared to light size
 
-		ret,cv_image = cv2.threshold(cv_image1,220,255,cv2.THRESH_BINARY)
+                                #print(dist/key1.size)
+                                x1=key1.pt[0]
+                                x2=key2.pt[0]
+                                y1=key1.pt[1]
+                                y2=key2.pt[1]
+                                carfound=1
 
-		# Set up the detector with default parameters.
-		params = cv2.SimpleBlobDetector_Params()
-		params.minThreshold = 10;    # the graylevel of images
-		params.maxThreshold = 200;
+        if carfound==1:
+            #fn = dtu.get_duckiefleet_root() + "/calibrations/camera_extrinsic/" + self.veh_name + ".yaml"
+            f=318 #figure out how to get focal length of robot calibration
 
-		params.filterByColor = True
-		params.blobColor = 255
-
-		# Filter by Area
-		params.filterByArea = False
-		params.minArea = 10000
-		params.filterByInertia = False
-		params.filterByConvexity = False
-		params.filterByCircularity = True
-		params.minCircularity = 0.1
-		detector = cv2.SimpleBlobDetector_create(params)
-
-		# Detect blobs.
-		keypoints = detector.detect(cv_image)
-		# Draw detected blobs as red circles.
-		# cv2.DRAW_MATCHES_FLAGS_DRAW_RICH_KEYPOINTS ensures the size of the circle corresponds to the size of blob
-		cv_image = cv2.drawKeypoints(cv_image, keypoints, np.array([]), (0,0,255), cv2.DRAW_MATCHES_FLAGS_DRAW_RICH_KEYPOINTS)
-		cv_image1 = cv2.drawKeypoints(cv_image1, keypoints, np.array([]), (0,0,255), cv2.DRAW_MATCHES_FLAGS_DRAW_RICH_KEYPOINTS)
-
-		#print(keypoints[0].pt)
-		x1=0
-		x2=0
-		y1=0
-		y2=0
-		carfound=0
-		for key1 in keypoints:
-			for key2 in keypoints:
-				if key1!=key2:
-					if abs((key1.size-key2.size)/key1.size)<0.4: #same size keys maybe change parameter
-						if abs((key1.pt[1]-key2.pt[1]))<key1.size/1: #same y coordinate maybe change parameter
-							dist=abs((key1.pt[0]-key2.pt[0]))
-							#print(dist)
-							#print(key1.size*4+key1.size)
-							if dist>key1.size*4+key1.size and dist <key1.size*10+key1.size: #roughly right distance compared to light size
-
-								#print(dist/key1.size)
-								x1=key1.pt[0]
-								x2=key2.pt[0]
-								y1=key1.pt[1]
-								y2=key2.pt[1]
-								carfound=1
-
-		if carfound==1:
-			#fn = dtu.get_duckiefleet_root() + "/calibrations/camera_extrinsic/" + self.veh_name + ".yaml"
-			f=318 #figure out how to get focal length of robot calibration
-
-			depth=0.12*f/abs(x2-x1)
-			print("Depth: " +str(depth))
-			imheight, imwidth = cv_image.shape[:2]
-			midt=(x1+x2)/2-imwidth/2
-			Midt=midt/f*depth
-			print(Midt)
-			#self.detected_log.append((Midt,depth))
-
+            depth=0.12*f/abs(x2-x1)
+            print("Depth: " +str(depth))
+            imheight, imwidth = cv_image.shape[:2]
+            midt=(x1+x2)/2-imwidth/2
+            Midt=midt/f*depth
+            #print(Midt)
+            #self.detected_log.append((Midt,depth))
+        else:
+            print("no car found")
 
         # print(corners)
 
@@ -201,6 +198,11 @@ class LEDDetectionNode(object):
         if self.publish_circles:
             # cv2.drawChessboardCorners(image_cv,
             #                             self.circlepattern_dims, corners, detection)
+                    # Draw detected blobs as red circles.
+        # cv2.DRAW_MATCHES_FLAGS_DRAW_RICH_KEYPOINTS ensures the size of the circle corresponds to the size of blob
+            cv_image = cv2.drawKeypoints(cv_image, keypoints, np.array([]), (0,0,255), cv2.DRAW_MATCHES_FLAGS_DRAW_RICH_KEYPOINTS)
+            cv_image1 = cv2.drawKeypoints(cv_image1, keypoints, np.array([]), (0,0,255), cv2.DRAW_MATCHES_FLAGS_DRAW_RICH_KEYPOINTS)
+
             cv_image1=cv2.circle(cv_image1,(int(x1),int(y1)), 5, (0,255,0), 2)
             cv_image1=cv2.circle(cv_image1,(int(x2),int(y2)), 5, (0,255,0), 2)
             image_msg_out = self.bridge.cv2_to_imgmsg(cv_image1, "bgr8")
