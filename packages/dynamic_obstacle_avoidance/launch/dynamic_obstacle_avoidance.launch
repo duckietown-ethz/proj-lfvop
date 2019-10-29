@@ -2,6 +2,7 @@
 
   <include file="$(find dynamic_obstacle_avoidance)/launch/lane_following.launch"/>
   <remap from="led_detection_node/image" to="camera_node/image/compressed"/>
+  <include file="$(find obst_avoid)/launch/obst_avoid_lane_follow_light.launch"/>
 
   <group ns="$(arg veh)">
     <node pkg="dynamic_obstacle_avoidance" type="set_doffset.py" name="set_doffset_node" output="screen"/>

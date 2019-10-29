@@ -1,2 +1,3 @@
 # LIST YOUR APT PACKAGES HERE
 nano
+python-skimage

@@ -18,15 +18,16 @@ class MyNode(DTROS):
         self.lanewidth = 0.2175
 
         offset_mode = 0
-        offset_mode = int(os.environ['OFFSET'])
-        if offset_mode == 0:
-            self.offset = 0.0
-        elif offset_mode == 1:
-            self.offset = self.lanewidth    # lane distance
-        elif offset_mode == 2:
-            self.offset = self.lanewidth/2     # middle of the road
-        else:
-            self.offset = 0.0
+        if 'OFFSET' in os.environ:
+            offset_mode = int(os.environ['OFFSET'])
+            if offset_mode == 0:
+                self.offset = 0.0
+            elif offset_mode == 1:
+                self.offset = self.lanewidth    # lane distance
+            elif offset_mode == 2:
+                self.offset = self.lanewidth/2     # middle of the road
+            else:
+                self.offset = 0.0
 
         # construct publisher
         self.pub_doffset = rospy.Publisher('lane_controller_node/doffset', Float64, queue_size=1)
