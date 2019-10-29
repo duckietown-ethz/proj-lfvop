@@ -1,0 +1,28 @@
+<launch>
+    <arg name="veh" default="dori" doc="Name of robot_name. ex: megaman"/>
+    <arg name="show_marker" default="false" doc="Specify if you want to see the marker"/>
+    <arg name="show_image" default="false" doc="Specify if you want to see the image"/>
+    <arg name="use_ai" default="true" doc="Specify if you want to use the corrected image from anti instagram which means if this is yes, the topic: /{}/image_transformer_node/corrected_image MUST BE PUBLISHED, , otherwise we simply subscribe to raw image"/>
+    <arg name="bb_len" default="500" doc="Specify length of bounding box"/>
+    <arg name="bb_wid" default="250" doc="Specify width of bounding box"/>
+    <arg name="ai_interval" default="10" doc="time interval after which the ai algorithm should be re-performed"/>
+    <arg name="trafo_mode" default="both" doc="'cb' for colo balance only; 'lin' for linear trafo only; 'both' for both"/>
+
+    <param name="~veh" value="$(arg veh)"/>
+    <param name="~show_marker" value="$(arg show_marker)" type="bool"/>
+    <param name="~show_image" value="$(arg show_image)" type="bool"/>
+    <param name="~use_ai" value="$(arg use_ai)" type="bool"/>
+    <param name="~bb_len" value="$(arg bb_len)" type="double"/>
+    <param name="~bb_wid" value="$(arg bb_wid)" type="double"/>
+    <arg name="pkg_name" value="obst_avoid"/>
+    <arg name="node_name" default="obstacle_detection_node"/>
+
+
+    <node ns="$(arg veh)" name="$(arg node_name)" pkg="$(arg pkg_name)" type="$(arg node_name).py" output="screen" clear_params="true" >
+    </node>
+
+
+
+
+
+</launch>

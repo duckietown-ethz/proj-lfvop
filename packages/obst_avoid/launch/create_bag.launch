@@ -1,0 +1,22 @@
+<!-- -*- xml -*- -->
+<!--
+  Record automatically a bag from the anti_instagram corrected image:
+  example use: roslaunch obst_avoid create_bag.launch veh:=dori path_save:=/home/niggi/Desktop/1.bag path_play:=/home/niggi/Desktop/bags/Record6/dori_slow_and_full_2017-12-11-14-09-28.bag 
+  -->
+
+<launch>
+    <arg name="veh" doc="specify name of the vehicle" />
+    <arg name="path_save" doc="specify path where to save the ai_bag" />
+    <arg name="path_play" doc="specify path where to play the bag" />
+
+
+    <include file="$(find anti_instagram)/launch/cont_anti_instagram_node.launch">
+      <arg name="veh" value="$(arg veh)" />
+    </include>
+
+    <node pkg="rosbag" type="play" name="player" output="screen" args="$(arg path_play)" />
+
+
+    <node pkg="rosbag" type="record" name="recorder" args="-O $(arg path_save) /$(arg veh)/image_transformer_node/corrected_image" />
+
+</launch>

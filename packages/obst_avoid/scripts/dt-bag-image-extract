@@ -1,0 +1,28 @@
+#!/usr/bin/env python
+
+import rosbag, sys, yaml, os, cv2
+import numpy as np
+import argparse
+from duckietown_utils.image_conversions import rgb_from_ros
+
+parser = argparse.ArgumentParser()
+parser.add_argument("input_bagpath", help="specify link to input bagfile", type=str)
+parser.add_argument("topic_tolisten", help="specify the camera topic e.g. /tesla/image_transformer_node/corrected_image", type=str)
+parser.add_argument("output_directory", help="specify output directory", type=str)
+args=parser.parse_args()
+bag = rosbag.Bag(args.input_bagpath)
+topic_interest= args.topic_tolisten
+
+dir = args.output_directory
+if os.path.exists(dir):
+	print "Directory already exists"
+	sys.exit(3) 
+
+os.makedirs(dir)
+i=0
+for topic, msg, t in bag.read_messages(topics=topic_interest):
+		im1=rgb_from_ros(msg)
+		im1=im1[...,::-1] #::-1 reverses a string!!!
+		cv2.imwrite(dir+ '/' + str(i) + '.jpg',im1)
+		i+=1
+bag.close()

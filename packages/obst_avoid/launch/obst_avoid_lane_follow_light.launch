@@ -1,0 +1,25 @@
+<launch>
+    <arg name="veh" default="dori" doc="Name of robot_name. ex: megaman"/>
+    <arg name="show_marker" default="false" doc="Specify if you want to see the marker"/>
+    <arg name="show_image" default="false" doc="Specify if you want to see the image"/>
+    <arg name="show_bird_perspective" default="false" doc="Specify if you want to see the bird perspective image"/>
+    <arg name="use_ai" default="true" doc="Specify if you want to use the corrected image from anti instagram which means if this is yes, the topic: /{}/image_transformer_node/corrected_image MUST BE PUBLISHED, otherwise we simply subscribe to raw image"/>
+    <arg name="bb_len" default="750" doc="Specify length of bounding box"/>
+    <arg name="bb_wid" default="500" doc="Specify width of bounding box"/>
+
+    <param name="~veh" value="$(arg veh)"/>
+    <param name="~show_marker" value="$(arg show_marker)" type="bool"/>
+    <param name="~show_image" value="$(arg show_image)" type="bool"/>
+    <param name="~show_bird_perspective" value="$(arg show_bird_perspective)" type="bool"/>
+      <param name="~use_ai" value="$(arg use_ai)" type="bool"/>
+    <param name="~bb_len" value="$(arg bb_len)" type="double"/>
+    <param name="~bb_wid" value="$(arg bb_wid)" type="double"/>
+
+    <group ns="$(arg veh)">
+      <node name="obstacle_detection_node" pkg="obst_avoid" type="obstacle_detection_node.py" output="screen">
+      </node>
+      <node name="obstacle_avoidance_node" pkg="obst_avoid" type="obstacle_avoidance_node.py" output="screen">
+      </node>
+     </group>
+
+</launch>
