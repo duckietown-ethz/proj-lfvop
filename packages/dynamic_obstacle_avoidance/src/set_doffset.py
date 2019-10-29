@@ -18,7 +18,8 @@ class MyNode(DTROS):
         self.lanewidth = 0.2175
 
         offset_mode = 0
-        offset_mode = int(os.environ['OFFSET'])
+        if 'OFFSET' in os.environ:
+            offset_mode = int(os.environ['OFFSET'])
         if offset_mode == 0:
             self.offset = 0.0
         elif offset_mode == 1:
