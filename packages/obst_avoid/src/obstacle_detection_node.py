@@ -97,8 +97,8 @@ class ObstDetectNode(object):
         if not self.active:
             return
         print "step0"
-        # if not self.thread_lock.acquire(False):
-        #     return
+        if not self.thread_lock.acquire(False):
+            return
         #start = time.time()
         print "step1"
         obst_list = PoseArray()
