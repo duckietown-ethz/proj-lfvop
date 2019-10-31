@@ -9,6 +9,4 @@
     <node pkg="dynamic_obstacle_avoidance" type="led_detection_node.py" name="led_detection_node" output="screen"/>
   </group>
 
-
-
 </launch>

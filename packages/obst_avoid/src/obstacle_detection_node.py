@@ -54,12 +54,13 @@ class ObstDetectNode(object):
                 self.pub_topic_img_bird_perspective = '/{}/obst_detect/image_bird_perspective/compressed'.format(robot_name)
                 self.publisher_img_bird_perspective = rospy.Publisher(self.pub_topic_img_bird_perspective, CompressedImage, queue_size=1)
                 print "show_image is active: image will be published as /veh/obst_detect/image_bird_perspective/compressed"
-
+        print "init"
         # Create a Subscriber
         if (self.use_ai):
+            print "ai"
             #self.sub_topic = '/{}/image_transformer_node/corrected_image'.format(robot_name)
             #self.subscriber = rospy.Subscriber(self.sub_topic, CompressedImage, self.callback_img,queue_size=1, buff_size=2**24)
-            self.sub_topic = rospy.Subscriber('/{}/image_transformer_node/corrected_image/compressed'.format(robot_name), CompressedImage,self.callback_img , queue_size=1,buff_size=2**24)
+            self.sub_topic = rospy.Subscriber('/{}/anti_instagram_node/corrected_image/compressed'.format(robot_name), CompressedImage,self.callback_img , queue_size=1,buff_size=2**24)
             #buff size to approximately close to 2^24 such that always most recent pic is taken
             #essentail
         else:
@@ -89,18 +90,17 @@ class ObstDetectNode(object):
                 return
         thread = threading.Thread(target=self.callback,args=(image,))
         thread.setDaemon(True)
+
         thread.start()
-
-
 
     def callback(self, image):
         if not self.active:
             return
-
+        print "step0"
         if not self.thread_lock.acquire(False):
             return
-
         #start = time.time()
+        print "step1"
         obst_list = PoseArray()
         marker_list = MarkerArray()
 

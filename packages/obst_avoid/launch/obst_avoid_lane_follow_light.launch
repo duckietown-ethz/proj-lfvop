@@ -1,6 +1,6 @@
 <launch>
-    <arg name="veh" default="dori" doc="Name of robot_name. ex: megaman"/>
-    <arg name="show_marker" default="false" doc="Specify if you want to see the marker"/>
+    <arg name="veh" default="$(env VEHICLE_NAME)"/>
+    <arg name="show_marker" default="true" doc="Specify if you want to see the marker"/>
     <arg name="show_image" default="false" doc="Specify if you want to see the image"/>
     <arg name="show_bird_perspective" default="false" doc="Specify if you want to see the bird perspective image"/>
     <arg name="use_ai" default="true" doc="Specify if you want to use the corrected image from anti instagram which means if this is yes, the topic: /{}/image_transformer_node/corrected_image MUST BE PUBLISHED, otherwise we simply subscribe to raw image"/>
@@ -16,10 +16,8 @@
     <param name="~bb_wid" value="$(arg bb_wid)" type="double"/>
 
     <group ns="$(arg veh)">
-      <node name="obstacle_detection_node" pkg="obst_avoid" type="obstacle_detection_node.py" output="screen">
-      </node>
-      <node name="obstacle_avoidance_node" pkg="obst_avoid" type="obstacle_avoidance_node.py" output="screen">
-      </node>
-     </group>
+      <node name="obstacle_detection_node" pkg="obst_avoid" type="obstacle_detection_node.py" output="screen"/>
+      <node name="obstacle_avoidance_node" pkg="obst_avoid" type="obstacle_avoidance_node.py" output="screen"/>
+    </group>
 
 </launch>

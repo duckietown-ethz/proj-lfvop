@@ -1,5 +1,5 @@
 <launch>
-    <arg name="veh" default="dori" doc="Name of robot_name. ex: megaman"/>
+    <arg name="veh" default="$(env VEHICLE_NAME)"/>
     <arg name="show_marker" default="true" doc="Specify if you want to see the marker"/>
     <arg name="show_image" default="true" doc="Specify if you want to see the image"/>
     <arg name="bb_len" default="500" doc="Specify length of bounding box"/>
