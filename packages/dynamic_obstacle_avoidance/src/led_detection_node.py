@@ -170,6 +170,7 @@ class LEDDetectionNode(object):
             #self.detected_log.append((Midt,depth))
         else:
             #print("no car found")
+            pass
 
         # print(corners)
 
