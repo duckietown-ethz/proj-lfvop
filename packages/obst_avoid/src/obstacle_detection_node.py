@@ -4,7 +4,7 @@ from sensor_msgs.msg import CompressedImage, Image
 from geometry_msgs.msg import PoseArray
 from visualization_msgs.msg import MarkerArray
 import time
-import threading
+#import threading
 
 ### note you need to change the name of the robot to yours here
 from obst_avoid.detector import Detector
@@ -26,7 +26,7 @@ class ObstDetectNode(object):
 
         self.active = False #initialize our node as active!! < -- How about no
         self.r = rospy.Rate(3) # Rate in Hz
-        self.thread_lock = threading.Lock()
+        #self.thread_lock = threading.Lock()
 
         self.detector = Detector(robot_name=robot_name)
 
@@ -88,17 +88,18 @@ class ObstDetectNode(object):
     def callback_img(self, image):
         if not self.active: #if node is turned off -> nothing happens!!!
                 return
-        thread = threading.Thread(target=self.callback,args=(image,))
-        thread.setDaemon(True)
+        #thread = threading.Thread(target=self.callback,args=(image,)) instead:
+        self.callback(image)
+        #thread.setDaemon(True)
 
-        thread.start()
+        #thread.start()
 
     def callback(self, image):
         if not self.active:
             return
         print "step0"
-        if not self.thread_lock.acquire(False):
-            return
+        #if not self.thread_lock.acquire(False):
+        #    return
         #start = time.time()
         print "step1"
         obst_list = PoseArray()
@@ -151,7 +152,7 @@ class ObstDetectNode(object):
         #print "OBST DETECTION TOOK: s"
         #print(end - start)
         self.r.sleep()
-        self.thread_lock.release()
+        #self.thread_lock.release()
 
     def onShutdown(self):
         rospy.loginfo('Shutting down Obstacle Detection, back to unsafe mode')
