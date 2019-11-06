@@ -20,7 +20,8 @@ class MyNode(DTROS):
         self.vehDist = 100 #just for init
 
         offset_mode = 0
-        offset_mode = int(os.environ['OFFSET'])
+        if 'OFFSET' in os.environ:
+            offset_mode = int(os.environ['OFFSET'])
         if offset_mode == 0:
             self.offset = 0.0
         elif offset_mode == 1:
