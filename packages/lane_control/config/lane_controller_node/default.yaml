@@ -16,7 +16,7 @@ d_thres: 0.2615
 d_offset: 0.0
 
 # LP copying these into here for now since they are loaded from the lane_controller
-#default parameters for dagu_car/wheels_driver_node 
+#default parameters for dagu_car/wheels_driver_node
 use_rad_lim: False
 min_rad: 0.06
 wheel_distance: 0.103

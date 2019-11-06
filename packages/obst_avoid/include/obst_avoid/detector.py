@@ -10,6 +10,7 @@ import socket
 from matplotlib import pyplot as plt
 import time
 from skimage import measure
+from cv_bridge import CvBridge
 
 import rospy
 from sensor_msgs.msg import CompressedImage
@@ -35,8 +36,13 @@ class Detector():
         self.H = load_homography(self.robot_name)
         self.inv_H = inv(self.H)
 
+        self.im_size = np.array([192, 256])
+        # self.im_size[0] = rospy.get_param('/%s/camera_node/res_h' %self.robot_name)
+        # self.im_size[1] = rospy.get_param('/%s/camera_node/res_w' %self.robot_name)
+
+
         # define where to cut the image, color range,...
-        self.crop = 150  # default value but is overwritten in init_homo
+        self.crop = 50  #old:150 # default value but is overwritten in init_homo
         # self.lower_yellow = np.array([20,100,150]) #more restrictive -> if you can be sure for "no reddish yellow"
         self.lower_yellow = np.array([15, 100, 200])
         self.upper_yellow = np.array([35, 255, 255])
@@ -66,18 +72,27 @@ class Detector():
         self.center_x = int(center_pixels[0])
         self.center_y = int(center_pixels[1])
 
+
+        # Debug warpPerspective
+        self.pub_topic_debug = '/{}/obst_detect/debug1/compressed'.format(robot_name)
+        self.publisher_debug = rospy.Publisher(self.pub_topic_debug, CompressedImage, queue_size=1)
+        self.pub_topic_debug = '/{}/obst_detect/debug2/compressed'.format(robot_name)
+        self.publisher_debug2 = rospy.Publisher(self.pub_topic_debug, CompressedImage, queue_size=1)
+        self.bridge = CvBridge()
+
     # initializes where the robot is in the bird view image
 
     def init_inv_homography(self):
         reference_world_point = np.float32([[self.ref_world_point_x], [0.0], [1.0]])  # adaptive cropping is dangerous
         real_pix_of_ref_point = self.ground2real_pic_pixel(reference_world_point)
-        image_height = 480  # default height of image
+        image_height = self.im_size[0]  # default height of image
+
         self.crop = int(real_pix_of_ref_point[1])
         x0 = 0  # take full width of image
-        x1 = 640  # take full width of image
+        x1 = self.im_size[1]  # take full width of image
         y0 = 0  # take top of cropped image!
         y1 = image_height - self.crop  # complete bottom
-        x_center = 320
+        x_center = x1/2
         y_center = image_height - self.crop
         pts1 = np.float32([[x0, y0], [x0, y1], [x1, y1], [x1, y0]])
         pts1_h = np.float32(
@@ -96,9 +111,20 @@ class Detector():
         obst_list = PoseArray()
         # FILTER CROPPED IMAGE
         # Convert BGR to HSV
-        hsv = cv2.cvtColor(image[self.crop:, :, :], cv2.COLOR_RGB2HSV)
+
+        #hsv = cv2.cvtColor(image[self.crop:, :, :], cv2.COLOR_RGB2HSV)
+        hsv = cv2.cvtColor(image, cv2.COLOR_RGB2HSV)
+        print image.shape
+        
+        #output = cv2.cvtColor(segmented_image, cv2.COLOR_GRAY2BGR)
+        image_msg = self.bridge.cv2_to_compressed_imgmsg(image)
+        self.publisher_debug.publish(image_msg)
         # Threshold the HSV image to get only yellow colors
+
         im_test = cv2.warpPerspective(hsv, self.M, (self.img_width, self.img_height))
+
+        image_msg = self.bridge.cv2_to_compressed_imgmsg(im_test)
+        self.publisher_debug2.publish(image_msg)
 
         mask1 = cv2.inRange(im_test, self.lower_yellow, self.upper_yellow)
         mask2 = cv2.inRange(im_test, self.lower_orange, self.upper_orange)
@@ -109,6 +135,7 @@ class Detector():
         if (np.sum(mask != 0) != 0):  # there were segment detected then
             # SEGMENT IMAGE
             segmented_image = self.segment_img(mask)
+
             props = measure.regionprops(segmented_image, mask)
             no_elements = np.max(segmented_image)
             # apply filter on elements-> only obstacles remain and mark them in original picture

@@ -162,7 +162,8 @@ class LEDDetectionNode(object):
             f=318 #figure out how to get focal length of robot calibration
 
             depth=0.12*f/abs(x2-x1)
-            print("Depth: " +str(depth))
+            #print("Depth: " +str(depth))
+            rospy.loginfo("[%s] Depth: %s" %(self.node_name, str(depth)))
             imheight, imwidth = cv_image.shape[:2]
             midt=(x1+x2)/2-imwidth/2
             Midt=midt/f*depth

@@ -97,11 +97,9 @@ class ObstDetectNode(object):
     def callback(self, image):
         if not self.active:
             return
-        print "step0"
         #if not self.thread_lock.acquire(False):
         #    return
         #start = time.time()
-        print "step1"
         obst_list = PoseArray()
         marker_list = MarkerArray()
 
@@ -130,7 +128,8 @@ class ObstDetectNode(object):
                 obst_image.data = self.visualizer.visualize_image(rectify(rgb_from_ros(image),self.intrinsics),obst_list)
                 #here i want to display cropped image
                 rgb_image=rgb_from_ros(obst_image.data)
-                obst_image.data = d8_compressed_image_from_cv_image(rgb_image[self.detector.crop:,:,::-1])
+                # obst_image.data = d8_compressed_image_from_cv_image(rgb_image[self.detector.crop:,:,::-1])
+                obst_image.data = d8_compressed_image_from_cv_image(rgb_image[:,:,::-1])
                 #THIS part only to visualize the cropped version -> somehow a little inefficient but keeps
                 #the visualizer.py modular!!!
                 self.publisher_img.publish(obst_image.data)

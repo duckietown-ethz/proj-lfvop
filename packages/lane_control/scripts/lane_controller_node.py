@@ -408,7 +408,7 @@ class lane_controller(object):
         prev_heading_err = self.heading_err
 
         self.cross_track_err = pose_msg.d - self.d_offset
-        
+
         self.heading_err = pose_msg.phi
 
         car_control_msg = Twist2DStamped()
@@ -493,6 +493,10 @@ class lane_controller(object):
         if omega < self.omega_min: omega = self.omega_min
         omega += self.omega_ff
         car_control_msg.omega = omega
+        #################################################### v=0 JL
+        car_control_msg.v = 0.0
+        car_control_msg.omega = 0.0
+        ###################################################
         self.publishCmd(car_control_msg)
         self.last_ms = currentMillis
 
