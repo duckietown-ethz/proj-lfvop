@@ -14,8 +14,10 @@ class MyNode(DTROS):
         super(MyNode, self).__init__(node_name=node_name)
 
         self.veh_name = rospy.get_namespace().strip("/")
-        self.stepsize = 20
+        self.stepsize = 4
+        self.transition_time = 2.0 #sec
         self.lanewidth = 0.2175
+        self.vehDist = 100 #just for init
 
         offset_mode = 0
         offset_mode = int(os.environ['OFFSET'])
@@ -38,17 +40,17 @@ class MyNode(DTROS):
         self.vehDist=msg.data
 
     def cbOvertake(self,msg):
-        if msg.data and self.vehDist<0.3:
+        if msg.data and self.vehDist<0.5:
             print "overtaking now!"
             for i in range(0,self.stepsize):
                 self.offset += self.lanewidth/float(self.stepsize) #write
-                rospy.sleep(0.1)
+                rospy.sleep(self.transition_time/float(self.stepsize))
 
             rospy.sleep(7.)
             print "going back to the right lane"
             for i in range(0,self.stepsize):
                 self.offset -= self.lanewidth/float(self.stepsize) #write
-                rospy.sleep(0.1)
+                rospy.sleep((self.transition_time/float(self.stepsize))
             self.offset =  0.0
 
     def run(self):
