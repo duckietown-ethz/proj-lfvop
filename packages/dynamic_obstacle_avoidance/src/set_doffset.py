@@ -51,8 +51,8 @@ class MyNode(DTROS):
             print "going back to the right lane"
             for i in range(0,self.stepsize):
                 self.offset -= self.lanewidth/float(self.stepsize) #write
-                rospy.sleep((self.transition_time/float(self.stepsize))
-            self.offset =  0.0
+                rospy.sleep(self.transition_time/float(self.stepsize))
+            self.offset = 0.0
 
     def run(self):
         # publish message every 0.1 second
