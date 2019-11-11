@@ -54,9 +54,9 @@ class DuckieDetectionNode(object):
                                                 Float32, queue_size=1)
 
         self.publish_boundingbox=1
-        self.lanestrip_width = 0.024 #look up!!
-        self.lane_width = 0.1025
-        self.lane_factor = 3
+        self.lanestrip_width = 0.1#0.024 #for debugging, better visibility, change back!
+        self.lane_width = 0.1025 #(half)
+        self.lane_factor = 0.5#3
 
         #self.rectified_input=1 #change to rectify, antiinstagram!: subscribe to anti_instagram_node/corrected_image/compressed
         #subscribe to /lane_filter_node/seglist_filtered and take pixels_normalized with color yellow and set to zero in mask to ignore yellow lane
@@ -122,14 +122,15 @@ class DuckieDetectionNode(object):
             #     mask[self.lane_seg[i][0]:self.lane_seg[i][2],self.lane_seg[i][1]:self.lane_seg[i][3]]=0
             ret,self.laneL_pixel0_clipped,self.laneL_pixel1_clipped=cv2.clipLine((0,0,self.resolution[1],self.resolution[0]),(self.laneL_pixel0.u,self.laneL_pixel0.v),(self.laneL_pixel1.u,self.laneL_pixel1.v))
             ret,self.laneR_pixel0_clipped,self.laneR_pixel1_clipped=cv2.clipLine((0,0,self.resolution[1],self.resolution[0]),(self.laneR_pixel0.u,self.laneR_pixel0.v),(self.laneR_pixel1.u,self.laneR_pixel1.v))
-            points = np.array([self.laneL_pixel0_clipped,self.laneL_pixel1_clipped,self.laneR_pixel0_clipped,self.laneR_pixel1_clipped])
+            points = np.array([self.laneL_pixel0_clipped,self.laneL_pixel1_clipped,self.laneR_pixel1_clipped,self.laneR_pixel0_clipped])
             lane_mask = np.ones_like(mask)
             print self.resolution
             print mask.shape
             print points
-            cv2.fillPoly(lane_mask,points,0)
-            mask=cv2.bitwise_and(mask,lane_mask)
-            cv2.drawContours(cv_image,points,-1,(0,0,255))
+            cv2.fillPoly(lane_mask,np.int32([points]),0)
+            mask_out = cv2.bitwise_and(mask,lane_mask)
+            mask = mask_out
+            cv2.drawContours(cv_image,np.int32([points]),-1,(0,0,255),3)
             #mask[lane_mask]=0
 
             #mask[self.lane_pixel0.u:self.lane_pixel1.u,self.lane_pixel0.v:self.lane_pixel1.v]=0 #
@@ -172,34 +173,34 @@ class DuckieDetectionNode(object):
         self.phi = lane_pose_msg.phi
         laneL_point0 = Point() #left side of lane
         laneL_point1 = Point()
-        laneL_point0.x = 0 - np.cos(self.phi)*self.lane_factor
-        laneL_point0.y = self.lane_width/2-self.d+self.lanestrip_width - np.sin(self.phi)*self.lane_factor
+        laneL_point0.x = 0 + np.cos(self.phi)*self.lane_factor
+        laneL_point0.y = self.lane_width-self.d+self.lanestrip_width+ np.sin(self.phi)*self.lane_factor
         laneL_point1.x = laneL_point0.x + np.cos(self.phi)*self.lane_factor*2
         laneL_point1.y = laneL_point0.y + np.sin(self.phi)*self.lane_factor*2
-        print "ground L"
-        print laneL_point0, laneL_point1
+        #print "ground L"
+        #print laneL_point0, laneL_point1
 
         self.laneL_pixel0=self.ground2pixel(laneL_point0)
         self.laneL_pixel1=self.ground2pixel(laneL_point1)
-        print "pixel L"
-        print self.laneL_pixel0, self.laneL_pixel1
+        #print "pixel L"
+        #print self.laneL_pixel0, self.laneL_pixel1
 
         laneR_point0 = Point()#right side of lane
         laneR_point1 = Point()
-        laneR_point0.x = 0 - np.cos(self.phi)*self.lane_factor
-        laneR_point0.y = self.lane_width/2-self.d - np.sin(self.phi)*self.lane_factor
+        laneR_point0.x = 0 + np.cos(self.phi)*self.lane_factor #now taking lane in range (0.5m,1m-->shouldnt be over image border)
+        laneR_point0.y = self.lane_width-self.d + np.sin(self.phi)*self.lane_factor
         laneR_point1.x = laneR_point0.x + np.cos(self.phi)*self.lane_factor*2
         laneR_point1.y = laneR_point0.y + np.sin(self.phi)*self.lane_factor*2
-        print "ground R"
-        print laneR_point0, laneR_point1
+        #print "ground R"
+        #print laneR_point0, laneR_point1
 
         self.laneR_pixel0 = self.ground2pixel(laneR_point0)
         self.laneR_pixel1 = self.ground2pixel(laneR_point1)
-        print "pixel R"
-        print self.laneR_pixel0, self.laneR_pixel1
+        #print "pixel R"
+        #print self.laneR_pixel0, self.laneR_pixel1
 
 
-    def laneHandling(self,lane_segments_msg):
+    def laneHandling(self,lane_segments_msg): #obsolete, was used for lane segments
 
         seg_points1 = Point()
         seg_points2 = Point()
