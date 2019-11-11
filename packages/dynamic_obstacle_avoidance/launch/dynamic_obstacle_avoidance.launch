@@ -3,11 +3,12 @@
   <include file="$(find dynamic_obstacle_avoidance)/launch/lane_following.launch"/>
   <remap from="led_detection_node/image" to="camera_node/image/compressed"/>
   <remap from="duckie_detection_node/image" to="camera_node/image/compressed"/>
-  <remap from="duckie_detection_node/seglist_filtered" to="lane_filter_node/seglist_filtered"/>
+  <remap from="duckie_detection_node/seglist_filtered" to="lane_filter_node/seglist_filtered"/> 
+<!--  <remap from="duckie_detection_node/seglist_filtered" to="line_detector_node/segment_list"/> -->
 
   <group ns="$(arg veh)">
     <node pkg="dynamic_obstacle_avoidance" type="set_doffset.py" name="set_doffset_node" output="screen"/>
-    <node pkg="dynamic_obstacle_avoidance" type="led_detection_node.py" name="led_detection_node" output="screen"/>
+<!--    <node pkg="dynamic_obstacle_avoidance" type="led_detection_node.py" name="led_detection_node" output="screen"/>-->
     <node pkg="dynamic_obstacle_avoidance" type="duckie_detection_node.py" name="duckie_detection_node" output="screen"/>
   </group>
 
