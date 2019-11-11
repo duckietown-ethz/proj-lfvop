@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 from copy import deepcopy
 from cv_bridge import CvBridge, CvBridgeError
-from duckietown_msgs.msg import BoolStamped, VehicleCorners, Pixel, SegmentList, Vector2D
+from duckietown_msgs.msg import BoolStamped, VehicleCorners, Pixel, SegmentList, Vector2D, LanePose
 from geometry_msgs.msg import Point32, Point
 from mutex import mutex
 from sensor_msgs.msg import CompressedImage, Image
@@ -40,6 +40,7 @@ class DuckieDetectionNode(object):
                                            self.cbSwitch, queue_size=1)
 
         self.sub_lane_segments = rospy.Subscriber("~seglist_filtered", SegmentList, self.laneHandling, queue_size=1)
+        self.sub_lane_pose = rospy.Subscriber("~lane_pose", LanePose, self.laneHandlingPose, queue_size=1)
 
         self.pub_detection = rospy.Publisher("~detection",
                                              BoolStamped, queue_size=1)
@@ -53,6 +54,10 @@ class DuckieDetectionNode(object):
                                                 Float32, queue_size=1)
 
         self.publish_boundingbox=1
+        self.lanestrip_width = 0.024 #look up!!
+        self.lane_width = 0.1025
+        self.lane_factor = 3
+
         #self.rectified_input=1 #change to rectify, antiinstagram!: subscribe to anti_instagram_node/corrected_image/compressed
         #subscribe to /lane_filter_node/seglist_filtered and take pixels_normalized with color yellow and set to zero in mask to ignore yellow lane
         self.resolution=np.array([0,0])#np.empty(shape=[0,2])
@@ -111,12 +116,24 @@ class DuckieDetectionNode(object):
         mask = cv2.inRange(hsv_img, self.yellow_low, self.yellow_high)
         if self.lane_detected:#set all yellow lane segments to zero in mask
             self.lane_detected = 0
-            self.lane_seg=self.lane_seg.astype(int)
-            #print self.lane_seg.shape
-            for i in range(self.lane_seg.shape[0]):
-                mask[self.lane_seg[i][0]:self.lane_seg[i][2],self.lane_seg[i][1]:self.lane_seg[i][3]]=0
+            # self.lane_seg=self.lane_seg.astype(int)
+            # #print self.lane_seg.shape
+            # for i in range(self.lane_seg.shape[0]):
+            #     mask[self.lane_seg[i][0]:self.lane_seg[i][2],self.lane_seg[i][1]:self.lane_seg[i][3]]=0
+            ret,self.laneL_pixel0_clipped,self.laneL_pixel1_clipped=cv2.clipLine((0,0,self.resolution[1],self.resolution[0]),(self.laneL_pixel0.u,self.laneL_pixel0.v),(self.laneL_pixel1.u,self.laneL_pixel1.v))
+            ret,self.laneR_pixel0_clipped,self.laneR_pixel1_clipped=cv2.clipLine((0,0,self.resolution[1],self.resolution[0]),(self.laneR_pixel0.u,self.laneR_pixel0.v),(self.laneR_pixel1.u,self.laneR_pixel1.v))
+            points = np.array([self.laneL_pixel0_clipped,self.laneL_pixel1_clipped,self.laneR_pixel0_clipped,self.laneR_pixel1_clipped])
+            lane_mask = np.ones_like(mask)
+            print self.resolution
+            print mask.shape
+            print points
+            cv2.fillPoly(lane_mask,points,0)
+            mask=cv2.bitwise_and(mask,lane_mask)
+            cv2.drawContours(cv_image,points,-1,(0,0,255))
+            #mask[lane_mask]=0
 
-                cv2.rectangle(cv_image,(self.lane_seg[i][0],self.lane_seg[i][1]),(self.lane_seg[i][2],self.lane_seg[i][3]),(0,0,255),2) #for debuging mark areas that have been erased from mask in red
+            #mask[self.lane_pixel0.u:self.lane_pixel1.u,self.lane_pixel0.v:self.lane_pixel1.v]=0 #
+            #cv2.rectangle(cv_image,(self.lane_pixel0.u,self.lane_pixel0.v),(self.lane_pixel1.u,self.lane_pixel1.v),(0,0,255),2) #for debuging mark areas that have been erased from mask in red
 
         #mask1 = mask[mask.shape[0]/4:mask.shape[0]/4*3]: crop image!
         img_cont, contours, hierarchy=cv2.findContours(mask,cv2.RETR_TREE,cv2.CHAIN_APPROX_SIMPLE)#threshold
@@ -148,6 +165,39 @@ class DuckieDetectionNode(object):
         if self.publish_boundingbox:
             image_msg_out = self.bridge.cv2_to_imgmsg(cv_image, "bgr8")
             self.pub_boundingbox_image.publish(image_msg_out)
+
+    def laneHandlingPose(self,lane_pose_msg):
+        self.lane_detected = 1
+        self.d = lane_pose_msg.d
+        self.phi = lane_pose_msg.phi
+        laneL_point0 = Point() #left side of lane
+        laneL_point1 = Point()
+        laneL_point0.x = 0 - np.cos(self.phi)*self.lane_factor
+        laneL_point0.y = self.lane_width/2-self.d+self.lanestrip_width - np.sin(self.phi)*self.lane_factor
+        laneL_point1.x = laneL_point0.x + np.cos(self.phi)*self.lane_factor*2
+        laneL_point1.y = laneL_point0.y + np.sin(self.phi)*self.lane_factor*2
+        print "ground L"
+        print laneL_point0, laneL_point1
+
+        self.laneL_pixel0=self.ground2pixel(laneL_point0)
+        self.laneL_pixel1=self.ground2pixel(laneL_point1)
+        print "pixel L"
+        print self.laneL_pixel0, self.laneL_pixel1
+
+        laneR_point0 = Point()#right side of lane
+        laneR_point1 = Point()
+        laneR_point0.x = 0 - np.cos(self.phi)*self.lane_factor
+        laneR_point0.y = self.lane_width/2-self.d - np.sin(self.phi)*self.lane_factor
+        laneR_point1.x = laneR_point0.x + np.cos(self.phi)*self.lane_factor*2
+        laneR_point1.y = laneR_point0.y + np.sin(self.phi)*self.lane_factor*2
+        print "ground R"
+        print laneR_point0, laneR_point1
+
+        self.laneR_pixel0 = self.ground2pixel(laneR_point0)
+        self.laneR_pixel1 = self.ground2pixel(laneR_point1)
+        print "pixel R"
+        print self.laneR_pixel0, self.laneR_pixel1
+
 
     def laneHandling(self,lane_segments_msg):
 
