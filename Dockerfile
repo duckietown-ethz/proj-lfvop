@@ -1,5 +1,5 @@
 # parameters
-ARG REPO_NAME="proj-lfvop"
+ARG REPO_NAME="dt-core"
 
 # ==================================================>
 # ==> Do not change this code
@@ -13,7 +13,7 @@ FROM duckietown/${BASE_IMAGE}:${BASE_TAG}
 
 # define repository path
 ARG REPO_NAME
-ARG REPO_PATH="${CATKIN_WS_DIR}/src/dt-core"
+ARG REPO_PATH="${CATKIN_WS_DIR}/src/${REPO_NAME}"
 WORKDIR "${REPO_PATH}"
 
 # create repo directory
@@ -33,7 +33,7 @@ RUN apt-get update \
 RUN pip install -r ${REPO_PATH}/dependencies-py.txt
 
 # copy the source code
-ADD . "${REPO_PATH}/"
+COPY . "${REPO_PATH}/"
 
 # build packages
 RUN . /opt/ros/${ROS_DISTRO}/setup.sh && \
