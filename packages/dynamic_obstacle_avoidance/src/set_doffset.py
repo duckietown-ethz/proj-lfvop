@@ -4,6 +4,7 @@ import os
 import rospy
 from duckietown import DTROS
 from std_msgs.msg import String, Float64, Float32
+from geometry_msgs.msg import Point32, Point
 from duckietown_msgs.msg import BoolStamped
 
 
@@ -18,6 +19,10 @@ class MyNode(DTROS):
         self.transition_time = 2.0 #sec
         self.lanewidth = 0.2175
         self.vehDist = 100 #just for init
+        self.duckieDist = 100
+        self.duckieSide = 100
+        self.vehDetected=False
+        self.duckieDetected=False
 
         offset_mode = 0
         if 'OFFSET' in os.environ:
@@ -34,14 +39,28 @@ class MyNode(DTROS):
         # construct publisher
         self.pub_doffset = rospy.Publisher('lane_controller_node/doffset', Float64, queue_size=1)
         #self.sub_bumper = rospy.Subscriber('/%s/vehicle_detection_node/detection' %self.veh_name,BoolStamped, self.cbOvertake, queue_size=1)
-        self.sub_led = rospy.Subscriber('/%s/led_detection_node/detection' %self.veh_name,BoolStamped, self.cbOvertake, queue_size=1)
-        self.sub_vehicle_distance = rospy.Subscriber('/%s/led_detection_node/detected_vehicle_distance' %self.veh_name,Float32, self.cbVehDist, queue_size=1)
+        self.sub_led_detect = rospy.Subscriber('/%s/led_detection_node/detection' %self.veh_name,BoolStamped, self.cbLedDetected, queue_size=1)
+        self.sub_vehicle_distance = rospy.Subscriber('/%s/led_detection_node/detected_vehicle_distance' %self.veh_name,Float32, self.cbVehicle, queue_size=1)
+        self.sub_duckie_detect = rospy.Subscriber('/%s/duckie_detection_node/detection' %self.veh_name,BoolStamped, self.cbDuckieDetected, queue_size=1)
+        self.sub_duckie_point = rospy.Subscriber('/%s/duckie_detection_node/detected_duckie_point' %self.veh_name,Point, self.cbDuckie, queue_size=1)
 
-    def cbVehDist(self,msg):
+    def cbVehicle(self,msg):
         self.vehDist=msg.data
+        self.Overtake()
 
-    def cbOvertake(self,msg):
-        if msg.data and self.vehDist<0.5:
+    def cbDuckie(self,msg):
+        self.duckieDist=msg.y
+        self.duckieSide=msg.x
+        self.Overtake()
+
+    def cbLedDetected(self,msg):
+        self.vehDetected=msg.data
+
+    def cbDuckieDetected(self,msg):
+        self.duckieDetected=msg.data
+
+    def Overtake(self):
+        if (self.vehDetected and self.vehDist<0.7 and self.vehDist>0.1):
             print "overtaking now!"
             for i in range(0,self.stepsize):
                 self.offset += self.lanewidth/float(self.stepsize) #write
