@@ -25,22 +25,11 @@ class LEDDetectionNode(object):
         self.bridge = CvBridge()
         self.active = True
         self.config = self.setupParam("~config", "baseline")
-        self.cali_file_name = self.setupParam("~cali_file_name", "default")
         self.publish_freq = self.setupParam("~publish_freq", 2.0)
         self.publish_duration = rospy.Duration.from_sec(1.0/self.publish_freq)
         self.last_stamp = rospy.Time.now()
         self.frontorback="back" #CHANGE TO CHECK BOTH!!#os.environ.get("FRONT_OR_BACK")
         rospack = rospkg.RosPack()
-        self.cali_file = "/code/catkin_ws/src/dt-core/packages/dynamic_obstacle_avoidance/config/led_detection_node/" +  \
-            self.cali_file_name + ".yaml"
-        # self.cali_file = rospack.get_path('duckietown') + \
-        #     "/config/" + self.config + \
-        #     "/vehicle_detection/vehicle_detection_node/" +  \
-        #     self.cali_file_name + ".yaml"
-        if not os.path.isfile(self.cali_file):
-            rospy.logwarn("[%s] Can't find calibration file: %s.\n"
-                          % (self.node_name, self.cali_file))
-        self.loadConfig(self.cali_file)
 
         self.publish_circles = True
 
@@ -81,11 +70,6 @@ class LEDDetectionNode(object):
         rospy.set_param(param_name, value)
         rospy.loginfo("[%s] %s = %s " % (self.node_name, param_name, value))
         return value
-
-    def loadConfig(self, filename):
-        stream = file(filename, 'r')
-        data = yaml.load(stream)
-        stream.close()
 
 
     def cbSwitch(self, switch_msg):

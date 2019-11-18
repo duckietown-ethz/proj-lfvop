@@ -1,0 +1,22 @@
+#lane_control/lane_controller_node
+#v_bar_old 0.45
+v_bar: 0.23
+# k_d_old: -12
+k_d: -3.5
+# k_theta_old: -6.0
+k_theta: -1
+k_Id: 1
+# v_bar: 0.2
+# k_d: -7
+# k_theta: -2
+# k_Id: 0.5
+k_Iphi: 0.0
+theta_thres: 0.523
+d_thres: 0.2615
+d_offset: 0.0
+
+# LP copying these into here for now since they are loaded from the lane_controller
+#default parameters for dagu_car/wheels_driver_node 
+use_rad_lim: False
+min_rad: 0.06
+wheel_distance: 0.103

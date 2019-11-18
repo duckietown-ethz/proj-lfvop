@@ -2,35 +2,35 @@
 
 import os
 import rospy
+import numpy as np
 from duckietown import DTROS
 from std_msgs.msg import String, Float64, Float32, Float64MultiArray
 from geometry_msgs.msg import Point32, Point
 from duckietown_msgs.msg import BoolStamped
 
 
-class dynamic_controller(DTROS):
+class Dynamic_Controller(DTROS):
 
     def __init__(self, node_name):
         # initialize the DTROS parent class
-        super(dynamic_controller, self).__init__(node_name=node_name)
+        super(Dynamic_Controller, self).__init__(node_name=node_name)
 
         self.veh_name = rospy.get_namespace().strip("/")
         self.stepsize = 4
         self.transition_time = 2.0 #sec
         self.lanewidth = 0.2175
-        self.vehDist = 100 #just for init
+
         self.duckieDist = 100
         self.duckieSide = 100
-        self.max_vel = 1
+        self.max_vel = 1 #in m/s?? todo
 
-        self.vehDetected=False
         self.duckieDetected=False
         self.head_state = False
         self.tail_state = False
-        self.head_veh_pose = np.zeros(2,1)
-        self.head_veh_vel = np.zeros(2,1)
-        self.tail_veh_pose = np.zeros(2,1)
-        self.tail_veh_vel = np.zeros(2,1)
+        self.head_veh_pose = np.zeros((2,1))
+        self.head_veh_vel = np.zeros((2,1))
+        self.tail_veh_pose = np.zeros((2,1))
+        self.tail_veh_vel = np.zeros((2,1))
         self.rel_vel = 0.0
 
         self.offset = 0.0
@@ -38,7 +38,6 @@ class dynamic_controller(DTROS):
         # construct publisher
         self.pub_doffset = rospy.Publisher('lane_controller_node/doffset', Float64, queue_size=1)
         #self.sub_bumper = rospy.Subscriber('/%s/vehicle_detection_node/detection' %self.veh_name,BoolStamped, self.cbOvertake, queue_size=1)
-        #self.sub_led_detect = rospy.Subscriber('/%s/led_detection_node/detection' %self.veh_name,BoolStamped, self.cbLedDetected, queue_size=1)
         self.sub_vehicle_head_state = rospy.Subscriber('/%s/led_detection_node/detected_duckiebot_head_state' %self.veh_name,BoolStamped, self.cbHead_state, queue_size=1)
         self.sub_vehicle_head = rospy.Subscriber('/%s/led_detection_node/detected_duckiebot_head' %self.veh_name,Float64MultiArray, self.cbHead, queue_size=1)
         self.sub_vehicle_tail_state = rospy.Subscriber('/%s/led_detection_node/detected_duckiebot_tail_state' %self.veh_name,BoolStamped, self.cbTail_state, queue_size=1)
@@ -51,7 +50,7 @@ class dynamic_controller(DTROS):
         self.head_vel = msg.data[2:4]
 
     def cbTail(self,msg):
-        self.tail_veh_pose = msg.data[0:1]
+        self.tail_veh_pose = msg.data[0] #only x vel needed?
         self.tail_vel = msg.data[2:4]
 
     def cbHead_state(self,msg):
@@ -59,31 +58,22 @@ class dynamic_controller(DTROS):
 
     def cbTail_state(self,msg):
         self.tail_state = msg.data
-        if self.tail_state:
+        if self.tail_state: #if we see car before us, go to check if overtaking is possible
             self.overwatch()
-
-    def cbVehicle(self,msg):
-        self.vehDist=msg.data
-        self.overtake()
 
     def cbDuckie(self,msg):
         self.duckieDist=msg.y
         self.duckieSide=msg.x
-        self.overtake()
-
-    def cbLedDetected(self,msg):
-        self.vehDetected=msg.data
 
     def cbDuckieDetected(self,msg):
         self.duckieDetected=msg.data
 
-
     def overwatch(self):
         if self.tail_vel < 0.5 * self.max_vel:
-            if self.tail[0] < 0.15 and self.tail[0] > 0.7:
-                if self.head_state:
+            if self.tail[0] < 0.15 and self.tail[0] > 0.7: #and if on the street before me, look at self.tail[1]
+                if not self.head_state: #if no car on the left lane
                     self.rel_vel = 0.1  # todo!!!!!!!!!!!!!!!!
-                    ovetake()
+                    self.overtake()
 
 
     def overtake(self):
@@ -92,7 +82,7 @@ class dynamic_controller(DTROS):
             self.offset += self.lanewidth/float(self.stepsize) #write
             rospy.sleep(self.transition_time/float(self.stepsize))
 
-        rospy.sleep(7.)
+        rospy.sleep(7.) #time on left lane, make dependend on self.rel_vel
         print "going back to the right lane"
         for i in range(0,self.stepsize):
             self.offset -= self.lanewidth/float(self.stepsize) #write
@@ -110,7 +100,7 @@ class dynamic_controller(DTROS):
 
 if __name__ == '__main__':
     # create the node
-    node = MyNode(node_name='my_node')
+    node = Dynamic_Controller(node_name='dynamic_controller_node')
     # run node
     node.run()
     # keep spinning

@@ -1,0 +1,6 @@
+desired_distance: 0.20
+minimal_distance: 0.25
+Kp: 0.7
+Ki: 0.0
+Kd: 0.0
+Kp_delta_v: 0.8
