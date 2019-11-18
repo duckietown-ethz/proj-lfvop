@@ -39,7 +39,7 @@ class DuckieDetectionNode(object):
         self.sub_switch = rospy.Subscriber("~switch", BoolStamped,
                                            self.cbSwitch, queue_size=1)
 
-        self.sub_lane_segments = rospy.Subscriber("~seglist_filtered", SegmentList, self.laneHandling, queue_size=1)
+
         self.sub_lane_pose = rospy.Subscriber("~lane_pose", LanePose, self.laneHandlingPose, queue_size=1)
 
         self.pub_detection = rospy.Publisher("~detection",
@@ -63,6 +63,7 @@ class DuckieDetectionNode(object):
         self.resolution=np.array([0,0])#np.empty(shape=[0,2])
         self.resolution[0]=rospy.get_param('/%s/camera_node/res_w' %self.robot_name)
         self.resolution[1]=rospy.get_param('/%s/camera_node/res_h' %self.robot_name)
+        self.load_intrinsics()
         self.H = self.load_homography()
         self.Hinv = np.linalg.inv(self.H)
         #self.pcm_ = PinholeCameraModel()
@@ -108,10 +109,14 @@ class DuckieDetectionNode(object):
             print e
 
         start = rospy.Time.now()
-        cv_image_crop = cv_image[cv_image.shape[0]/4:-1][:] #crop
+        cv_image = self.rectify_image(cv_image) #does this really help?
+        cv_image_crop = cv_image[cv_image.shape[0]/4:cv_image.shape[0]*3/4][:] #crop upper and lower 1/4 of image
         hsv_img = cv2.cvtColor(cv_image_crop, cv2.COLOR_BGR2HSV)
 
         mask = cv2.inRange(hsv_img, self.yellow_low, self.yellow_high)
+        mask = cv2.erode(mask,None, iterations=1)
+        mask = cv2.dilate(mask,None, iterations=3)
+
         if self.lane_detected:#set all yellow lane segments to zero in mask
             self.lane_detected = 0
             # self.lane_seg=self.lane_seg.astype(int)
@@ -148,6 +153,13 @@ class DuckieDetectionNode(object):
             if len(cnt)>20:
                 x,y,w,h = cv2.boundingRect(cnt)
                 cv2.rectangle(cv_image_crop,(x,y),(x+w,y+h),(0,255,0),2)
+                ((x1,y1),(w1,h1),angle) = cv2.minAreaRect(cnt)
+                print angle
+                #rotrect=cv2.minAreaRect(cnt)
+                #box=cv2.boxPoints(rotrect)
+                #box=np.int0(box)
+                #cv2.rectangle(cv_image_crop,[box],0,(0,255,0),2)
+
                 duckie_loc_pix.u=int(x+w/2)
                 duckie_loc_pix.v=y+h+mask.shape[0]/4 #to compensate for crop
                 duckie_loc_world = self.pixel2ground(duckie_loc_pix)
@@ -157,9 +169,10 @@ class DuckieDetectionNode(object):
 
 
         duckie_detected_msg_out.data = duckiefound
-        duckie_point_msg_out=duckie_loc_world
+
         self.pub_detection.publish(duckie_detected_msg_out)
         if duckiefound:
+            duckie_point_msg_out=duckie_loc_world
             self.detected_duckie_point.publish(duckie_point_msg_out)
 
         elapsed_time = (rospy.Time.now() - start).to_sec()
@@ -174,10 +187,10 @@ class DuckieDetectionNode(object):
         self.phi = lane_pose_msg.phi
         laneL_point0 = Point() #left side of lane
         laneL_point1 = Point()
-        laneL_point0.x = 0 + np.sin(-self.phi)*(self.lane_width-self.d+self.lanestrip_width) + np.cos(-self.phi)*self.lane_factor*0.1
-        laneL_point0.y = np.cos(-self.phi)*(self.lane_width-self.d+self.lanestrip_width) + np.sin(-self.phi)*self.lane_factor*0.1
-        laneL_point1.x = laneL_point0.x + np.cos(-self.phi)*self.lane_factor*2.5
-        laneL_point1.y = laneL_point0.y + np.sin(-self.phi)*self.lane_factor*2.5
+        laneL_point0.x = 0 + np.sin(-self.phi)*(self.lane_width-self.d+self.lanestrip_width) + np.cos(-self.phi)*self.lane_factor*0.5
+        laneL_point0.y = np.cos(-self.phi)*(self.lane_width-self.d+self.lanestrip_width) + np.sin(-self.phi)*self.lane_factor*0.5
+        laneL_point1.x = laneL_point0.x + np.cos(-self.phi)*self.lane_factor*3
+        laneL_point1.y = laneL_point0.y + np.sin(-self.phi)*self.lane_factor*3
         print "ground L0"
         print laneL_point0
 
@@ -190,10 +203,10 @@ class DuckieDetectionNode(object):
 
         laneR_point0 = Point()#right side of lane
         laneR_point1 = Point()
-        laneR_point0.x = 0 + np.sin(-self.phi)*(self.lane_width-self.d-self.lanestrip_width) + np.cos(-self.phi)*self.lane_factor*0.1 #now taking lane in range (0.5m,1m-->shouldnt be over image border)
-        laneR_point0.y = np.cos(-self.phi)*(self.lane_width-self.d-self.lanestrip_width) + np.sin(-self.phi)*self.lane_factor*0.1
-        laneR_point1.x = laneR_point0.x + np.cos(-self.phi)*self.lane_factor*2.5
-        laneR_point1.y = laneR_point0.y + np.sin(-self.phi)*self.lane_factor*2.5
+        laneR_point0.x = 0 + np.sin(-self.phi)*(self.lane_width-self.d-self.lanestrip_width) + np.cos(-self.phi)*self.lane_factor*0.5 #now taking lane in range (0.5m,1m-->shouldnt be over image border)
+        laneR_point0.y = np.cos(-self.phi)*(self.lane_width-self.d-self.lanestrip_width) + np.sin(-self.phi)*self.lane_factor*0.5
+        laneR_point1.x = laneR_point0.x + np.cos(-self.phi)*self.lane_factor*3
+        laneR_point1.y = laneR_point0.y + np.sin(-self.phi)*self.lane_factor*3
         #print "ground R"
         #print laneR_point0, laneR_point1
 
@@ -205,40 +218,11 @@ class DuckieDetectionNode(object):
         #print self.laneR_pixel0, self.laneR_pixel1
 
 
-    def laneHandling(self,lane_segments_msg): #obsolete, was used for lane segments
-
-        seg_points1 = Point()
-        seg_points2 = Point()
-        #seg_points1 = Vector2D()
-        #seg_points2 = Vector2D()
-        seg_points = [seg_points1,seg_points2] #not needed?
-        self.lane_seg = np.empty(shape=[0,4])
-
-        for s in range (len(lane_segments_msg.segments)):
-            if lane_segments_msg.segments[s].color==1: #0: white 1: yellow, 2:red
-
-                self.lane_detected = 1
-                seg_points = lane_segments_msg.segments[s].points
-                self.p0=np.array([self.ground2pixel(seg_points[0]).u,self.ground2pixel(seg_points[0]).v])
-                self.p1=np.array([self.ground2pixel(seg_points[1]).u,self.ground2pixel(seg_points[1]).v])
-                #seg_points = lane_segments_msg.segments[s].pixels_normalized
-                #self.p0=np.multiply(np.array([seg_points[0].x,seg_points[0].y]),self.resolution) #muliply with resolution to unnormalize coordinates
-                self.p0=self.p0.astype(int)
-                self.p1=self.p1.astype(int)
-                #self.p1=np.multiply(np.array([seg_points[1].x,seg_points[1].y]),self.resolution)
-
-
-                #print np.array([self.p0[0],self.p0[1],self.p1[0],self.p1[1]]) # stack coordinates of the two corners in a 1x4 row
-
-                self.lane_seg = np.vstack((self.lane_seg,np.array([self.p0[0],self.p0[1],self.p1[0],self.p1[1]])))
-
-
-
     def pixel2ground(self,pixel):
         uv_raw = np.array([pixel.u, pixel.v])
         #if not self.rectified_input:
         #    uv_raw = self.pcm_.rectifyPoint(uv_raw)
-        #uv_raw = [uv_raw, 1]
+
         uv_raw = np.append(uv_raw, np.array([1]))
         ground_point = np.dot(self.H, uv_raw)
         point = Point()
@@ -266,6 +250,19 @@ class DuckieDetectionNode(object):
         pixel.v = int(image_point[1])
         return pixel
 
+    def rectify_image(self, image): #does this really help?
+        height, width, _ = image.shape
+        rectified_image = np.zeros(np.shape(image))
+        mapx = np.ndarray(shape=(height, width, 1), dtype='float32')
+        mapy = np.ndarray(shape=(height, width, 1), dtype='float32')
+        mapx, mapy = cv2.initUndistortRectifyMap(self.intrinsics['K'],
+                                                 self.intrinsics['D'],
+                                                 self.intrinsics['R'],
+                                                 self.intrinsics['P'],
+                                                 (width, height), cv2.CV_32FC1, mapx, mapy)
+        out_img = cv2.remap(image, mapx, mapy, cv2.INTER_CUBIC, rectified_image)
+        return out_img
+
     def load_homography(self):
         '''Load homography (extrinsic parameters)'''
         filename = (get_duckiefleet_root() + "/calibrations/camera_extrinsic/" + self.robot_name + ".yaml")
@@ -281,6 +278,25 @@ class DuckieDetectionNode(object):
             data = yaml_load_file(filename)
         logger.info("Loaded homography for {}".format(os.path.basename(filename)))
         return np.array(data['homography']).reshape((3,3))
+
+    def load_intrinsics(self):
+
+        filename = (get_duckiefleet_root() + "/calibrations/camera_intrinsic/" + self.robot_name + ".yaml")
+        # Use the default values from the config folder if a robot-specific file does not exist.
+        if not os.path.isfile(filename):
+            self.log("Intrinsic calibration file %s does not exist! Using the default file." % filename, type='warn')
+            filename = (get_duckiefleet_root() + "/calibrations/camera_intrinsic/default.yaml")
+
+        stream = file(filename, 'r')
+        data = yaml.load(stream)
+        stream.close()
+
+        self.intrinsics = {}
+        self.intrinsics['K'] = np.array(data['camera_matrix']['data']).reshape(3, 3)
+        self.intrinsics['D'] = np.array(data['distortion_coefficients']['data']).reshape(1, 5)
+        self.intrinsics['R'] = np.array(data['rectification_matrix']['data']).reshape(3, 3)
+        self.intrinsics['P'] = np.array(data['projection_matrix']['data']).reshape((3, 4))
+        self.intrinsics['distortion_model'] = data['distortion_model']
 
 
 if __name__ == '__main__':
