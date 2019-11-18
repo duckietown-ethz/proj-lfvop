@@ -57,12 +57,17 @@ class LEDDetectionNode(object):
         self.pub_time_elapsed = rospy.Publisher("~detection_time",
                                                 Float32, queue_size=1)
 
-        self.detected_vehicle_distance = rospy.Publisher("~detected_vehicle_distance",
-                                                Float32, queue_size=1)
+        self.detected_duckiebot_head = rospy.Publisher("~detected_duckiebot_head",
+                                                Float64MultiArray, queue_size=1)
+        self.detected_duckiebot_tail = rospy.Publisher("~detected_duckiebot_tail",
+                                                Float64MultiArray, queue_size=1)
         self.intrinsics = load_camera_intrinsics(self.robot_name)
         self.fx=self.intrinsics['K'][0][0]
         self.fy=self.intrinsics['K'][1][1]
         self.radialparam=self.intrinsics['D']
+        self.Midtold=0
+        self.depthold=0
+        self.time = rospy.get_rostime()
 
 
     def setupParam(self, param_name, default_value):
@@ -233,6 +238,20 @@ class LEDDetectionNode(object):
             Midt=midt/self.fx*depth
             #print(Midt)
             #self.detected_log.append((Midt,depth))
+            t=rospy.get_rostime()
+            vMidt=(Midt-self.Midtold)/t
+            vdepth=(depth-depthold)/t
+            
+            self.time = t
+            self.Midtold=Midt
+            self.depthold=depth
+            data_to_send = Float64MultiArray()  # the data to be sent, initialise the array
+            data_to_send.data = [Midt,depth,vMidt,vdepth] #
+            if self.frontorback=="front"
+                self.detected_duckiebot_head.publish(data_to_send)
+            if self.frontorback=="back"
+                self.detected_duckiebot_tail.publish(data_to_send)
+            
         else:
             print("no car found")
 
@@ -241,7 +260,7 @@ class LEDDetectionNode(object):
         vehicle_detected_msg_out.data = carfound
         self.pub_detection.publish(vehicle_detected_msg_out)
         if carfound:
-            self.detected_vehicle_distance.publish(depth)
+            
         #     # print(corners)
         #     points_list = []
         #     for point in corners:
