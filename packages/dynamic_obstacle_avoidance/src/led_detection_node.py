@@ -5,7 +5,7 @@ from duckietown_msgs.msg import BoolStamped, VehicleCorners
 from geometry_msgs.msg import Point32
 from mutex import mutex
 from sensor_msgs.msg import CompressedImage, Image
-from std_msgs.msg import Float32
+from std_msgs.msg import Float32, Float64MultiArray
 import cv2
 import numpy as np
 import os
@@ -21,6 +21,7 @@ class LEDDetectionNode(object):
 
     def __init__(self):
         self.node_name = rospy.get_name()
+        self.veh_name = rospy.get_namespace().strip("/")
         self.bridge = CvBridge()
         self.active = True
         self.config = self.setupParam("~config", "baseline")
@@ -28,8 +29,7 @@ class LEDDetectionNode(object):
         self.publish_freq = self.setupParam("~publish_freq", 2.0)
         self.publish_duration = rospy.Duration.from_sec(1.0/self.publish_freq)
         self.last_stamp = rospy.Time.now()
-        self.robot_name=os.environ.get("ROBOT_NAME")
-        self.frontorback=os.environ.get("FRONT_OR_BACK")
+        self.frontorback="back" #CHANGE TO CHECK BOTH!!#os.environ.get("FRONT_OR_BACK")
         rospack = rospkg.RosPack()
         self.cali_file = "/code/catkin_ws/src/dt-core/packages/dynamic_obstacle_avoidance/config/led_detection_node/" +  \
             self.cali_file_name + ".yaml"
@@ -42,32 +42,38 @@ class LEDDetectionNode(object):
                           % (self.node_name, self.cali_file))
         self.loadConfig(self.cali_file)
 
+        self.publish_circles = True
+
         self.lock = mutex()
         self.sub_image = rospy.Subscriber("~image", CompressedImage,
                                           self.processImage, buff_size=921600,
                                           queue_size=1)
         self.sub_switch = rospy.Subscriber("~switch", BoolStamped,
                                            self.cbSwitch, queue_size=1)
-        self.pub_detection = rospy.Publisher("~detection",
-                                             BoolStamped, queue_size=1)
-        self.pub_corners = rospy.Publisher("~corners",
-                                           VehicleCorners, queue_size=1)
+
         self.pub_circlepattern_image = rospy.Publisher("~circlepattern_image",
                                                        Image, queue_size=1)
         self.pub_time_elapsed = rospy.Publisher("~detection_time",
                                                 Float32, queue_size=1)
 
-        self.detected_duckiebot_head = rospy.Publisher("~detected_duckiebot_head",
+        self.pub_detected_duckiebot_head = rospy.Publisher("~detected_duckiebot_head",
                                                 Float64MultiArray, queue_size=1)
-        self.detected_duckiebot_tail = rospy.Publisher("~detected_duckiebot_tail",
+        self.pub_detected_duckiebot_tail = rospy.Publisher("~detected_duckiebot_tail",
                                                 Float64MultiArray, queue_size=1)
-        self.intrinsics = load_camera_intrinsics(self.robot_name)
+
+        self.pub_detected_duckiebot_front_state = rospy.Publisher("~detected_duckiebot_head_state",
+                                             BoolStamped, queue_size=1)
+
+        self.pub_detected_duckiebot_tail_state = rospy.Publisher("~detected_duckiebot_tail_state",
+                                             BoolStamped, queue_size=1)
+
+        self.intrinsics = load_camera_intrinsics(self.veh_name)
         self.fx=self.intrinsics['K'][0][0]
         self.fy=self.intrinsics['K'][1][1]
         self.radialparam=self.intrinsics['D']
         self.Midtold=0
         self.depthold=0
-        self.time = rospy.get_rostime()
+        self.time = rospy.get_rostime().to_sec()
 
 
     def setupParam(self, param_name, default_value):
@@ -80,18 +86,7 @@ class LEDDetectionNode(object):
         stream = file(filename, 'r')
         data = yaml.load(stream)
         stream.close()
-        self.circlepattern_dims = data['circlepattern_dims']['dist']
-        self.blobdetector_min_area = data['blobdetector_min_area']
-        self.blobdetector_min_dist_between_blobs = data['blobdetector_min_dist_between_blobs']
-        self.publish_circles = data['publish_circles']
-        rospy.loginfo('[%s] circlepattern_dim : %s' % (self.node_name,
-                                                       self.circlepattern_dims,))
-        rospy.loginfo('[%s] blobdetector_min_area: %.2f' % (self.node_name,
-                                                            self.blobdetector_min_area))
-        rospy.loginfo('[%s] blobdetector_min_dist_between_blobs: %.2f' % (self.node_name,
-                                                                          self.blobdetector_min_dist_between_blobs))
-        rospy.loginfo('[%s] publish_circles: %r' % (self.node_name,
-                                                    self.publish_circles))
+
 
     def cbSwitch(self, switch_msg):
         self.active = switch_msg.data
@@ -120,9 +115,9 @@ class LEDDetectionNode(object):
 
     def features_deepcopy(self,f):
         #because deepcopy does not work with keypoint
-        return [cv2.KeyPoint(x = k.pt[0], y = k.pt[1], 
-                _size = k.size, _angle = k.angle, 
-                _response = k.response, _octave = k.octave, 
+        return [cv2.KeyPoint(x = k.pt[0], y = k.pt[1],
+                _size = k.size, _angle = k.angle,
+                _response = k.response, _octave = k.octave,
                 _class_id = k.class_id) for k in f]
 
 
@@ -138,9 +133,6 @@ class LEDDetectionNode(object):
         else:
             self.last_stamp = now
 
-
-        vehicle_detected_msg_out = BoolStamped()
-        vehicle_corners_msg_out = VehicleCorners()
         try:
             cv_image_color = self.bridge.compressed_imgmsg_to_cv2(
                 image_msg, "bgr8")
@@ -155,7 +147,7 @@ class LEDDetectionNode(object):
 
         cv_image1 = cv2.cvtColor(cv_image_color, cv2.COLOR_BGR2GRAY)
         #cv_image1 = cv_image1[cv_image1.shape[0]/4:cv_image1.shape[0]/4*3]
-        
+
 
         ret,cv_image = cv2.threshold(cv_image1,220,255,cv2.THRESH_BINARY)
 
@@ -182,10 +174,10 @@ class LEDDetectionNode(object):
         #undistort radially the points
         self.cv_image=cv_image
         keyin=self.features_deepcopy(keypoints)
-        
+
         keypoints_un=self.undistort(keyin)
-        
-       
+
+
 
         #print(keypoints[0].pt)
         x1=0
@@ -238,29 +230,38 @@ class LEDDetectionNode(object):
             Midt=midt/self.fx*depth
             #print(Midt)
             #self.detected_log.append((Midt,depth))
-            t=rospy.get_rostime()
-            vMidt=(Midt-self.Midtold)/t
-            vdepth=(depth-depthold)/t
-            
+            t=rospy.get_rostime().to_sec()
+            vMidt=(Midt-self.Midtold)/(t-self.time)
+            vdepth=(depth-self.depthold)/(t-self.time)
+
             self.time = t
             self.Midtold=Midt
             self.depthold=depth
             data_to_send = Float64MultiArray()  # the data to be sent, initialise the array
-            data_to_send.data = [Midt,depth,vMidt,vdepth] #
-            if self.frontorback=="front"
+            data_to_send.data = [depth,-Midt,vdepth,-vMidt] #pos x,y vel x,y, check minus!!
+            if self.frontorback=="front":
                 self.detected_duckiebot_head.publish(data_to_send)
-            if self.frontorback=="back"
+            if self.frontorback=="back":
                 self.detected_duckiebot_tail.publish(data_to_send)
-            
+
         else:
             print("no car found")
 
         # print(corners)
+        detected_duckiebot_tail_state = BoolStamped()
+        detected_duckiebot_front_state = BoolStamped()
 
-        vehicle_detected_msg_out.data = carfound
-        self.pub_detection.publish(vehicle_detected_msg_out)
-        if carfound:
-            
+        if self.frontorback=="front":
+            detected_duckiebot_tail_state.data = 0
+            detected_duckiebot_front_state.data = carfound
+        if self.frontorback=="back":
+            detected_duckiebot_tail_state.data = carfound
+            detected_duckiebot_front_state.data = 0
+
+        self.pub_detected_duckiebot_tail_state.publish(detected_duckiebot_tail_state)
+        self.pub_detected_duckiebot_front_state.publish(detected_duckiebot_front_state)
+        #if carfound:
+
         #     # print(corners)
         #     points_list = []
         #     for point in corners:
@@ -279,6 +280,7 @@ class LEDDetectionNode(object):
         #     self.pub_corners.publish(vehicle_corners_msg_out)
         elapsed_time = (rospy.Time.now() - start).to_sec()
         self.pub_time_elapsed.publish(elapsed_time)
+
         if self.publish_circles:
             # cv2.drawChessboardCorners(image_cv,
             #                             self.circlepattern_dims, corners, detection)
