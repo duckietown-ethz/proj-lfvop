@@ -22,7 +22,7 @@ class Dynamic_Controller(DTROS):
 
         self.duckieDist = 100
         self.duckieSide = 100
-        self.max_vel = 1 #in m/s?? todo
+        self.max_vel = 7 #in m/s?? todo
 
         self.duckieDetected=False
         self.head_state = False
@@ -52,6 +52,8 @@ class Dynamic_Controller(DTROS):
     def cbTail(self,msg):
         self.tail_veh_pose = msg.data[0] #only x vel needed?
         self.tail_vel = msg.data[2:4]
+        print ("tailbot position: ", self.tail_veh_pose)
+        print ("tailbot velocity: ", self.tail_vel)
 
     def cbHead_state(self,msg):
         self.head_state = msg.data
@@ -59,6 +61,7 @@ class Dynamic_Controller(DTROS):
     def cbTail_state(self,msg):
         self.tail_state = msg.data
         if self.tail_state: #if we see car before us, go to check if overtaking is possible
+            print "starting overwatch"
             self.overwatch()
 
     def cbDuckie(self,msg):
@@ -70,7 +73,9 @@ class Dynamic_Controller(DTROS):
 
     def overwatch(self):
         if self.tail_vel < 0.5 * self.max_vel:
-            if self.tail[0] < 0.15 and self.tail[0] > 0.7: #and if on the street before me, look at self.tail[1]
+            print "tailbot slower than 0.5 * max_vel "
+            if self.tail[0] > 0.15 and self.tail[0] < 0.7: #and if on the street before me, look at self.tail[1]
+                print "tailbot is with in overtaking range"
                 if not self.head_state: #if no car on the left lane
                     self.rel_vel = 0.1  # todo!!!!!!!!!!!!!!!!
                     self.overtake()

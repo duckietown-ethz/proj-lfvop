@@ -182,25 +182,24 @@ class LEDDetectionNode(object):
                             print(dist/key1.size)
                             #print(key1.size*4+key1.size)
                             dist_est=0.12*key1.size/0.01
-                            if dist>dist_est*0.6 and dist <dist_est*1.1: #roughly right distance compared to light size
-                                pixel1= cv_image_color[int(keypoints[i].pt[1]), int(keypoints[i].pt[0])]
-                                pixel2= cv_image_color[int(keypoints[j].pt[1]), int(keypoints[j].pt[0])]
-                                blue1=pixel1[0]
-                                blue2=pixel2[0]
-                                print("blue value: "+str(blue1))
-                                #print(dist/key1.size)
-                                bluethreshold=235
-                                #check if the blue value of the led light is matching the red back or the white front
-                                if (self.frontorback=="back" and blue1<bluethreshold and blue2<bluethreshold) or(self.frontorback=="front" and blue1>=bluethreshold and blue2>=bluethreshold):
-                                    x1=key1.pt[0]
-                                    x2=key2.pt[0]
-                                    y1=key1.pt[1]
-                                    y2=key2.pt[1]
-                                    x1d=keypoints[i].pt[0]
-                                    x2d=keypoints[j].pt[0]
-                                    y1d=keypoints[i].pt[1]
-                                    y2d=keypoints[j].pt[1]
-
+                            #if dist>dist_est*0.4 and dist <dist_est*1.8: #roughly right distance compared to light size
+                            pixel1= cv_image_color[int(keypoints[i].pt[1]), int(keypoints[i].pt[0])]
+                            pixel2= cv_image_color[int(keypoints[j].pt[1]), int(keypoints[j].pt[0])]
+                            blue1=pixel1[0]
+                            blue2=pixel2[0]
+                            print("blue value: "+str(blue1))
+                            #print(dist/key1.size)
+                            bluethreshold=235
+                            #check if the blue value of the led light is matching the red back or the white front
+                            if (self.frontorback=="back" and blue1<bluethreshold and blue2<bluethreshold) or(self.frontorback=="front" and blue1>=bluethreshold and blue2>=bluethreshold):
+                                x1=key1.pt[0]
+                                x2=key2.pt[0]
+                                y1=key1.pt[1]
+                                y2=key2.pt[1]
+                                x1d=keypoints[i].pt[0]
+                                x2d=keypoints[j].pt[0]
+                                y1d=keypoints[i].pt[1]
+                                y2d=keypoints[j].pt[1]
                                 carfound=1
 
         if carfound==1:
