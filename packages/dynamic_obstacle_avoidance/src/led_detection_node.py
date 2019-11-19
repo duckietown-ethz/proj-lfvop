@@ -224,9 +224,9 @@ class LEDDetectionNode(object):
             data_to_send = Float64MultiArray()  # the data to be sent, initialise the array
             data_to_send.data = [depth,-Midt,vdepth,-vMidt] #pos x,y vel x,y, check minus!!
             if self.frontorback=="front":
-                self.detected_duckiebot_head.publish(data_to_send)
+                self.pub_detected_duckiebot_head.publish(data_to_send)
             if self.frontorback=="back":
-                self.detected_duckiebot_tail.publish(data_to_send)
+                self.pub_detected_duckiebot_tail.publish(data_to_send)
 
         else:
             print("no car found")

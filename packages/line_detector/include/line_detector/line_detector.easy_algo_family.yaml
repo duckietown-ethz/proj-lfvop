@@ -1,3 +1,0 @@
-description: |
-    These are the line detectors.
-interface: line_detector.LineDetectorInterface
