@@ -17,7 +17,7 @@ class Dynamic_Controller(DTROS):
 
         self.veh_name = rospy.get_namespace().strip("/")
         self.stepsize = 4
-        self.transition_time = 2.0 #sec
+        self.transition_time = 4.0 #sec
         self.lanewidth = 0.2175
 
         self.duckieDist = 100
@@ -46,12 +46,12 @@ class Dynamic_Controller(DTROS):
         self.sub_duckie_point = rospy.Subscriber('/%s/duckie_detection_node/detected_duckie_point' %self.veh_name,Point, self.cbDuckie, queue_size=1)
 
     def cbHead(self,msg):
-        self.head_veh_pose = msg.data[0:2]
-        self.head_vel = msg.data[2:4]
+        self.head_veh_pose = msg.data[0]
+        self.head_vel = msg.data[2]
 
     def cbTail(self,msg):
         self.tail_veh_pose = msg.data[0] #only x vel needed?
-        self.tail_vel = msg.data[2:4]
+        self.tail_vel = msg.data[2]
         print ("tailbot position: ", self.tail_veh_pose)
         print ("tailbot velocity: ", self.tail_vel)
 
@@ -74,7 +74,7 @@ class Dynamic_Controller(DTROS):
     def overwatch(self):
         if self.tail_vel < 0.5 * self.max_vel:
             print "tailbot slower than 0.5 * max_vel "
-            if self.tail[0] > 0.15 and self.tail[0] < 0.7: #and if on the street before me, look at self.tail[1]
+            if self.tail_veh_pose > 0.15 and self.tail_veh_pose < 1: #and if on the street before me, look at self.tail[1]
                 print "tailbot is with in overtaking range"
                 if not self.head_state: #if no car on the left lane
                     self.rel_vel = 0.1  # todo!!!!!!!!!!!!!!!!
@@ -87,7 +87,7 @@ class Dynamic_Controller(DTROS):
             self.offset += self.lanewidth/float(self.stepsize) #write
             rospy.sleep(self.transition_time/float(self.stepsize))
 
-        rospy.sleep(7.) #time on left lane, make dependend on self.rel_vel
+        rospy.sleep(3.) #time on left lane, make dependend on self.rel_vel
         print "going back to the right lane"
         for i in range(0,self.stepsize):
             self.offset -= self.lanewidth/float(self.stepsize) #write
