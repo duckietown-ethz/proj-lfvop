@@ -60,11 +60,11 @@ class LEDDetectionNode(object):
 
         ## Debugging image publishers
         self.pub_red_mask = rospy.Publisher("~debug_image_redmask",
-                                                       CompressedImage, queue_size=1)
+                                                       Image, queue_size=1)
         self.pub_yellow_mask = rospy.Publisher("~debug_image_yellowmask",
-                                                       CompressedImage, queue_size=1)
+                                                       Image, queue_size=1)
         self.pub_rgb_mask = rospy.Publisher("~debug_image_rgbmask",
-                                                       CompressedImage, queue_size=1)
+                                                       Image, queue_size=1)
 
         self.intrinsics = load_camera_intrinsics(self.veh_name)
         self.fx=self.intrinsics['K'][0][0]
@@ -152,9 +152,9 @@ class LEDDetectionNode(object):
         lower_range_red = np.array([105, 100, 100], dtype=np.uint8)
         upper_range_red = np.array([119, 255, 255], dtype=np.uint8)
 
-        mask_yellow = cv2.inRange(hsv, lower_range_yellow, upper_range_yellow)
-        mask_red = cv2.inRange(hsv, lower_range_red, upper_range_red)
-
+        self.mask_yellow = cv2.inRange(hsv, lower_range_yellow, upper_range_yellow)
+        self.mask_red = cv2.inRange(hsv, lower_range_red, upper_range_red)
+        print('created masks')
 
 
         ## OLD CODE ##
@@ -162,18 +162,21 @@ class LEDDetectionNode(object):
         #cv_image1 = cv_image1[cv_image1.shape[0]/4:cv_image1.shape[0]/4*3]
 
         ret,cv_image = cv2.threshold(cv_image1,220,255,cv2.THRESH_BINARY)
-
+        self.mask_rgb = cv_image
         ## END OLD CODE ##
 
         # Publish debugging image_msg
-        mask1_msg_out = self.bridge.cv2_to_compressed_imgmsg(mask_yellow, "bgr8")
+        mask1_msg_out = self.bridge.cv2_to_imgmsg(self.mask_yellow, "bgr8")
         self.pub_yellow_mask.publish(mask1_msg_out)
 
-        mask2_msg_out = self.bridge.cv2_to_compressed_imgmsg(mask_red, "bgr8")
+        mask2_msg_out = self.bridge.cv2_to_imgmsg(self.mask_red, "bgr8")
         self.pub_red_mask.publish(mask2_msg_out)
 
-        mask3_msg_out = self.bridge.cv2_to_compressed_imgmsg(cv_image, "bgr8")
+        mask3_msg_out = self.bridge.cv2_to_imgmsg(self.mask_rgb, "bgr8")
         self.pub_rgb_mask.publish(mask3_msg_out)
+
+        rospy.loginfo("[%s] %s = %s " % (self.node_name, 'debugging images', 'qty 3'))
+        print('should have published images')
 
 
 
@@ -223,7 +226,7 @@ class LEDDetectionNode(object):
                     if abs((key1.size-key2.size)/key1.size)<0.4: #same size keys maybe change parameter
                         if abs((key1.pt[1]-key2.pt[1]))<key1.size/1: #same y coordinate maybe change parameter
                             dist=abs((key1.pt[0]-key2.pt[0]))
-                            print(dist/key1.size)
+                            #print(dist/key1.size)
                             #print(key1.size*4+key1.size)
                             dist_est=0.12*key1.size/0.01
                             #if dist>dist_est*0.4 and dist <dist_est*1.8: #roughly right distance compared to light size
@@ -231,7 +234,7 @@ class LEDDetectionNode(object):
                             pixel2= cv_image_color[int(keypoints[j].pt[1]), int(keypoints[j].pt[0])]
                             blue1=pixel1[0]
                             blue2=pixel2[0]
-                            print("blue value: "+str(blue1))
+                            #print("blue value: "+str(blue1))
                             #print(dist/key1.size)
                             bluethreshold=235
                             #check if the blue value of the led light is matching the red back or the white front
@@ -251,7 +254,7 @@ class LEDDetectionNode(object):
             #f=318 #figure out how to get focal length of robot calibration
 
             depth=0.12*self.fy/abs(x2-x1)
-            print("Depth: " +str(depth))
+            #print("Depth: " +str(depth))
             imheight, imwidth = cv_image.shape[:2]
             midt=(x1+x2)/2-imwidth/2
             Midt=midt/self.fx*depth
@@ -272,7 +275,7 @@ class LEDDetectionNode(object):
                 self.pub_detected_duckiebot_tail.publish(data_to_send)
 
         else:
-            print("no car found")
+            #print("no car found")
 
         # print(corners)
         detected_duckiebot_tail_state = BoolStamped()
