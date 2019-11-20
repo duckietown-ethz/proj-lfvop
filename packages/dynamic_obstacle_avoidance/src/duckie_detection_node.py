@@ -40,8 +40,6 @@ class DuckieDetectionNode(object):
                                            self.cbSwitch, queue_size=1)
 
 
-        self.sub_lane_pose = rospy.Subscriber("~lane_pose", LanePose, self.laneHandlingPose, queue_size=1)
-
         self.pub_detection = rospy.Publisher("~detection",
                                              BoolStamped, queue_size=1)
 
@@ -56,7 +54,7 @@ class DuckieDetectionNode(object):
         self.publish_boundingbox=1
         self.lanestrip_width = 0.05#0.024 #half of lanestrip width)(including buffer), to the left and to the right
         self.lane_width = 0.1145#0.1025 #(half of lane + half of strip)
-        self.lane_factor = 0.5#3
+        self.lane_factor = 20
 
         #self.rectified_input=1 #change to rectify, antiinstagram!: subscribe to anti_instagram_node/corrected_image/compressed
         #subscribe to /lane_filter_node/seglist_filtered and take pixels_normalized with color yellow and set to zero in mask to ignore yellow lane
@@ -109,8 +107,8 @@ class DuckieDetectionNode(object):
             print e
 
         start = rospy.Time.now()
-        cv_image = self.rectify_image(cv_image) #does this really help?
-        cv_image_crop = cv_image[cv_image.shape[0]/4:cv_image.shape[0]*3/4][:] #crop upper and lower 1/4 of image
+        #cv_image = self.rectify_image(cv_image) #does this really help?
+        cv_image_crop = cv_image[cv_image.shape[0]/3:cv_image.shape[0]*3/4][:] #crop upper and lower 1/4 of image
         hsv_img = cv2.cvtColor(cv_image_crop, cv2.COLOR_BGR2HSV)
 
         mask = cv2.inRange(hsv_img, self.yellow_low, self.yellow_high)
@@ -124,33 +122,50 @@ class DuckieDetectionNode(object):
         for item in range(len(contours)):
             cnt = contours[item]
             if len(cnt)>20:
-                 #x,y,w,h = cv2.boundingRect(cnt)
-                #cv2.rectangle(cv_image_crop,(x,y),(x+w,y+h),(0,255,0),2)
-                ((x1,y1),(w1,h1),angle) = cv2.minAreaRect(cnt)
-                segments_info.append([x1,y1,w1,h1,angle])
-                print angle
-                self.lane_detected=true
+                #((x1,y1),(w1,h1),angle) = cv2.minAreaRect(cnt)
+                rect = cv2.minAreaRect(cnt)
+                ((x1,y1),(w1,h1),angle) = rect
+                if w1<h1:#wrong axis->add 90deg
+                    angle-=90
+                box = cv2.boxPoints(rect)
+                box = np.int0(box)
+                cv2.drawContours(cv_image_crop,[box],0,(0,255,0),2)
+                segments_info.append([box[0],box[1],box[2],box[3],angle])
 
-        segments_info = np.asarray(segments_info)
-        lane_angle = median(segments_info[:,4])
-        segments_sorted = segments_info[segments_info[:,4].argsort()]
-        (x1,y1,w1,h1,angle) = segments_sorted[segments_sorted.shape[0]//2,:]
-        laneR_pixel0 = (x1,y1)
-        laneL_pixel0 = (x1+w1,y1+h1)
-        laneR_pixel1 = (laneR_pixel0[0]+np.cos(lane_angle)*self.lane_factor, laneR_pixel0[1]+np.sin(lane_angle)*self.lane_factor)
-        laneL_pixel1 = (laneL_pixel0[0]+np.cos(lane_angle)*self.lane_factor, laneL_pixel0[1]+np.sin(lane_angle)*self.lane_factor)
-
-        print laneL_pixel0,laneR_pixel0
-
+                self.lane_detected=True
 
         if self.lane_detected:#set all yellow lane segments to zero in mask
+            #print segments_info
+            segments_info = np.asarray(segments_info)
+            lane_angle = np.median(segments_info[:,4])
+            #sort nach winkel, mittelwert
+            # segments_sorted = segments_info[segments_info[:,4].argsort()]
+            # (p1,p2,p3,p4,angle) = segments_sorted[segments_sorted.shape[0]//2,:]
+            #sort by y coord of zerost point
+            segments_sorted = segments_info[segments_info[:,0][0].argsort()]
+            (p1,p2,p3,p4,angle) = segments_sorted[-1,:] #take last ->largest element
+            print p1,p2,p3,p4,angle,lane_angle
+            lane_angle=angle #better?
+            cv2.circle(cv_image_crop, (p1[0],p1[1]), 5, (255, 0, 0),1)
+            cv2.circle(cv_image_crop, (p2[0],p2[1]), 5, (255, 0, 0),1)
+            laneR_pixel0 = (int(p1[0]),int(p1[1]))
+            laneL_pixel0 = (int(p2[0]),int(p2[1]))
+            #laneR_pixel0 = (int(p1[0]-np.cos(lane_angle)*self.lane_factor),int(p1[1]-np.sin(lane_angle)*self.lane_factor))
+            #laneL_pixel0 = (int(p2[0]-np.cos(lane_angle)*self.lane_factor),int(p2[1]-np.sin(lane_angle)*self.lane_factor))
+            laneR_pixel1 = (int(laneR_pixel0[0]+np.sin(lane_angle)*2*self.lane_factor), int(laneR_pixel0[1]+np.cos(lane_angle)*2*self.lane_factor))
+            laneL_pixel1 = (int(laneL_pixel0[0]+np.sin(lane_angle)*2*self.lane_factor), int(laneL_pixel0[1]+np.cos(lane_angle)*2*self.lane_factor))
+
+            print laneL_pixel0,laneR_pixel0
+
 
             ret,self.laneL_pixel0_clipped,self.laneL_pixel1_clipped=cv2.clipLine((0,0,mask.shape[0],mask.shape[1]),laneL_pixel0,laneL_pixel1)
-            ret,self.laneR_pixel0_clipped,self.laneR_pixel1_clipped=cv2.clipLine((0,0,mask.shape[0],mask.shape[1],laneR_pixel0,laneR_pixel1))
+            ret,self.laneR_pixel0_clipped,self.laneR_pixel1_clipped=cv2.clipLine((0,0,mask.shape[0],mask.shape[1]),laneR_pixel0,laneR_pixel1)
             points = np.array([self.laneL_pixel0_clipped,self.laneL_pixel1_clipped,self.laneR_pixel1_clipped,self.laneR_pixel0_clipped])
+            #points = np.array([laneL_pixel0,laneL_pixel1,laneR_pixel1,laneR_pixel0])
+
             lane_mask = np.ones_like(mask)
 
-            print mask.shape
+            #print mask.shape
             print points
             cv2.fillPoly(lane_mask,np.int32([points]),0)
             mask_out = cv2.bitwise_and(mask,lane_mask)
@@ -168,13 +183,13 @@ class DuckieDetectionNode(object):
             cnt = contours[item]
             if len(cnt)>20:
                 x,y,w,h = cv2.boundingRect(cnt)
-                cv2.rectangle(cv_image_crop,(x,y),(x+w,y+h),(0,255,0),2)
+                #cv2.rectangle(cv_image_crop,(x,y),(x+w,y+h),(0,255,0),2)
 
                 duckie_loc_pix.u=int(x+w/2)
-                duckie_loc_pix.v=y+h+mask.shape[0]/4 #to compensate for crop
+                duckie_loc_pix.v=y+h+mask.shape[0]/3 #to compensate for crop
                 duckie_loc_world = self.pixel2ground(duckie_loc_pix)
                 distance = duckie_loc_world.y #currently just takes last contor, change this to biggest contor?
-                print("duckie distance: ", distance)
+                #print("duckie distance: ", distance)
                 duckiefound = 1
 
 
