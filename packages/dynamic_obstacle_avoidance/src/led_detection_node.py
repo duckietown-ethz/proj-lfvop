@@ -56,6 +56,16 @@ class LEDDetectionNode(object):
         self.pub_detected_duckiebot_tail_state = rospy.Publisher("~detected_duckiebot_tail_state",
                                              BoolStamped, queue_size=1)
 
+
+
+        ## Debugging image publishers
+        self.pub_red_mask = rospy.Publisher("~debug_image_redmask",
+                                                       CompressedImage, queue_size=1)
+        self.pub_yellow_mask = rospy.Publisher("~debug_image_yellowmask",
+                                                       CompressedImage, queue_size=1)
+        self.pub_rgb_mask = rospy.Publisher("~debug_image_rgbmask",
+                                                       CompressedImage, queue_size=1)
+
         self.intrinsics = load_camera_intrinsics(self.veh_name)
         self.fx=self.intrinsics['K'][0][0]
         self.fy=self.intrinsics['K'][1][1]
@@ -107,10 +117,11 @@ class LEDDetectionNode(object):
 
 
     def processImage(self, image_msg):
-
+        # Deactivate at the end of rosrun loop
         if not self.active:
             return
 
+        # Get timestamp
         now = rospy.Time.now()
         if now - self.last_stamp < self.publish_duration:
             return
@@ -126,14 +137,47 @@ class LEDDetectionNode(object):
         start = rospy.Time.now()
 
 
+        # Convert image to HSV scale for easier identifying of circlepattern_dims
 
-        cv_image_color = cv_image_color[cv_image_color.shape[0]/4:cv_image_color.shape[0]/4*3]
+        #cv_image_color = cv_image_color[cv_image_color.shape[0]/4:cv_image_color.shape[0]/4*3]
 
-        cv_image1 = cv2.cvtColor(cv_image_color, cv2.COLOR_BGR2GRAY)
+        # # # -- converting images from BGR to HSV for processing
+        hsv = cv2.cvtColor(cv_image_color, cv2.COLOR_BGR2HSV)
+
+        # set the ranges for yellow and red masks
+        # Yellow
+        lower_range_yellow =  np.array([81, 100, 100], dtype=np.uint8)
+        upper_range_yellow = np.array([97, 255, 255], dtype=np.uint8)
+        # Red
+        lower_range_red = np.array([105, 100, 100], dtype=np.uint8)
+        upper_range_red = np.array([119, 255, 255], dtype=np.uint8)
+
+        mask_yellow = cv2.inRange(hsv, lower_range_yellow, upper_range_yellow)
+        mask_red = cv2.inRange(hsv, lower_range_red, upper_range_red)
+
+
+
+        ## OLD CODE ##
+        #cv_image1 = cv2.cvtColor(cv_image_color, cv2.COLOR_BGR2GRAY)
         #cv_image1 = cv_image1[cv_image1.shape[0]/4:cv_image1.shape[0]/4*3]
 
-
         ret,cv_image = cv2.threshold(cv_image1,220,255,cv2.THRESH_BINARY)
+
+        ## END OLD CODE ##
+
+        # Publish debugging image_msg
+        mask1_msg_out = self.bridge.cv2_to_compressed_imgmsg(mask_yellow, "bgr8")
+        self.pub_yellow_mask.publish(mask1_msg_out)
+
+        mask2_msg_out = self.bridge.cv2_to_compressed_imgmsg(mask_red, "bgr8")
+        self.pub_red_mask.publish(mask2_msg_out)
+
+        mask3_msg_out = self.bridge.cv2_to_compressed_imgmsg(cv_image, "bgr8")
+        self.pub_rgb_mask.publish(mask3_msg_out)
+
+
+
+
 
         # Set up the detector with default parameters.
         params = cv2.SimpleBlobDetector_Params()
@@ -276,6 +320,11 @@ class LEDDetectionNode(object):
             cv_image1=cv2.circle(cv_image1,(int(x2),int(y2)), 5, (0,255,0), 2)
             cv_image1=cv2.circle(cv_image1,(int(x1d),int(y1d)), 5, (255,0,0), 2)
             cv_image1=cv2.circle(cv_image1,(int(x2d),int(y2d)), 5, (255,0,0), 2)
+
+            # Add debuggin to see video feedback of velocity on image
+            cv_image1=cv2.putText(cv_image1, str(self.depthold), (25,25), cv2.FONT_HERSHEY_SIMPLEX, 1, (255,100,100), 1)
+            # End of Debugging part
+
             image_msg_out = self.bridge.cv2_to_imgmsg(cv_image1, "bgr8")
             self.pub_circlepattern_image.publish(image_msg_out)
 
