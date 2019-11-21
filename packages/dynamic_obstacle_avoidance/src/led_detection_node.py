@@ -149,30 +149,33 @@ class LEDDetectionNode(object):
         lower_range_yellow =  np.array([81, 100, 100], dtype=np.uint8)
         upper_range_yellow = np.array([97, 255, 255], dtype=np.uint8)
         # Red
-        lower_range_red = np.array([105, 100, 100], dtype=np.uint8)
+        #lower_range_red = np.array([105, 100, 100], dtype=np.uint8)
+        lower_range_red = np.array([0, 0, 0], dtype=np.uint8)
         upper_range_red = np.array([119, 255, 255], dtype=np.uint8)
 
-        self.mask_yellow = cv2.inRange(hsv, lower_range_yellow, upper_range_yellow)
-        self.mask_red = cv2.inRange(hsv, lower_range_red, upper_range_red)
+
+
+        mask_yellow = cv2.inRange(hsv, lower_range_yellow, upper_range_yellow)
+        mask_red = cv2.inRange(hsv, lower_range_red, upper_range_red)
         print('created masks')
 
 
         ## OLD CODE ##
-        #cv_image1 = cv2.cvtColor(cv_image_color, cv2.COLOR_BGR2GRAY)
-        #cv_image1 = cv_image1[cv_image1.shape[0]/4:cv_image1.shape[0]/4*3]
+        cv_image1 = cv2.cvtColor(cv_image_color, cv2.COLOR_BGR2GRAY)
+        cv_image1 = cv_image1[cv_image1.shape[0]/4:cv_image1.shape[0]/4*3]
 
         ret,cv_image = cv2.threshold(cv_image1,220,255,cv2.THRESH_BINARY)
-        self.mask_rgb = cv_image
+        mask_rgb = cv_image
         ## END OLD CODE ##
 
         # Publish debugging image_msg
-        mask1_msg_out = self.bridge.cv2_to_imgmsg(self.mask_yellow, "bgr8")
+        mask1_msg_out = self.bridge.cv2_to_imgmsg(mask_yellow, "passthrough")
         self.pub_yellow_mask.publish(mask1_msg_out)
 
-        mask2_msg_out = self.bridge.cv2_to_imgmsg(self.mask_red, "bgr8")
+        mask2_msg_out = self.bridge.cv2_to_imgmsg(mask_red, "passthrough")
         self.pub_red_mask.publish(mask2_msg_out)
 
-        mask3_msg_out = self.bridge.cv2_to_imgmsg(self.mask_rgb, "bgr8")
+        mask3_msg_out = self.bridge.cv2_to_imgmsg(mask_rgb, "passthrough")
         self.pub_rgb_mask.publish(mask3_msg_out)
 
         rospy.loginfo("[%s] %s = %s " % (self.node_name, 'debugging images', 'qty 3'))
@@ -275,6 +278,7 @@ class LEDDetectionNode(object):
                 self.pub_detected_duckiebot_tail.publish(data_to_send)
 
         else:
+            pass
             #print("no car found")
 
         # print(corners)
