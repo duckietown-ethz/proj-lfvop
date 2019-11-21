@@ -5,7 +5,7 @@ from duckietown_msgs.msg import BoolStamped, VehicleCorners, Pixel, SegmentList,
 from geometry_msgs.msg import Point32, Point
 from mutex import mutex
 from sensor_msgs.msg import CompressedImage, Image
-from std_msgs.msg import Float32
+from std_msgs.msg import Float32, Float64MultiArray
 import cv2
 import numpy as np
 import os
@@ -40,7 +40,7 @@ class DuckieDetectionNode(object):
                                            self.cbSwitch, queue_size=1)
 
 
-        self.sub_lane_pose = rospy.Subscriber("~lane_pose", LanePose, self.laneHandlingPose, queue_size=1)
+        self.sub_lane_pose = rospy.Subscriber("~lane_pose", LanePose, self.laneHandlingPose, queue_size=1) #remove for debugging
 
         self.pub_detection = rospy.Publisher("~detection",
                                              BoolStamped, queue_size=1)
@@ -50,13 +50,14 @@ class DuckieDetectionNode(object):
         self.pub_time_elapsed = rospy.Publisher("~detection_time",
                                                 Float32, queue_size=1)
 
-        self.detected_duckie_point = rospy.Publisher("~detected_duckie_point",
-                                                Point, queue_size=1)
+        self.pub_duckie_locations = rospy.Publisher("~detected_duckie_locations",
+                                                Float64MultiArray, queue_size=1)
 
         self.publish_boundingbox=1
         self.lanestrip_width = 0.05#0.024 #half of lanestrip width)(including buffer), to the left and to the right
         self.lane_width = 0.1145#0.1025 #(half of lane + half of strip)
-        self.lane_factor = 0.5#3
+        self.lane_factor = 1#3
+        self.crop_factor = float(1.0/3)
 
         #self.rectified_input=1 #change to rectify, antiinstagram!: subscribe to anti_instagram_node/corrected_image/compressed
         #subscribe to /lane_filter_node/seglist_filtered and take pixels_normalized with color yellow and set to zero in mask to ignore yellow lane
@@ -71,6 +72,7 @@ class DuckieDetectionNode(object):
         #self.p1 = Pixel()
         self.lane_seg=np.array([])
         self.lane_detected = 0
+        self.phi_new=0
 
         self.yellow_low = np.array([20,100,100]) #load from yaml file in the future
         self.yellow_high = np.array([30,255,255])
@@ -100,7 +102,11 @@ class DuckieDetectionNode(object):
 
 
         duckie_detected_msg_out = BoolStamped()
-        duckie_point_msg_out = Point()
+        duckie_locations_msg_out = Float64MultiArray()
+        # lane_pose_msg_sim = LanePose()#for debugging, remove!!
+        # lane_pose_msg_sim.d=0
+        # lane_pose_msg_sim.phi=0
+        # self.laneHandlingPose(lane_pose_msg_sim)#for debugging, remove!!
 
         try:
             cv_image = self.bridge.compressed_imgmsg_to_cv2(
@@ -110,7 +116,7 @@ class DuckieDetectionNode(object):
 
         start = rospy.Time.now()
         cv_image = self.rectify_image(cv_image) #does this really help?
-        cv_image_crop = cv_image[cv_image.shape[0]/4:cv_image.shape[0]*3/4][:] #crop upper and lower 1/4 of image
+        cv_image_crop = cv_image[float(cv_image.shape[0])*self.crop_factor:cv_image.shape[0]*3/4][:] #crop upper 1/3 and lower 1/4 of image
         hsv_img = cv2.cvtColor(cv_image_crop, cv2.COLOR_BGR2HSV)
 
         mask = cv2.inRange(hsv_img, self.yellow_low, self.yellow_high)
@@ -119,61 +125,55 @@ class DuckieDetectionNode(object):
 
         if self.lane_detected:#set all yellow lane segments to zero in mask
             self.lane_detected = 0
-            # self.lane_seg=self.lane_seg.astype(int)
-            # #print self.lane_seg.shape
-            # for i in range(self.lane_seg.shape[0]):
-            #     mask[self.lane_seg[i][0]:self.lane_seg[i][2],self.lane_seg[i][1]:self.lane_seg[i][3]]=0
-            print "before clipping"
-            print self.laneL_pixel0,self.laneL_pixel1
-            ret,self.laneL_pixel0_clipped,self.laneL_pixel1_clipped=cv2.clipLine((0,0,mask.shape[0],mask.shape[1]),(self.laneL_pixel0.u,self.laneL_pixel0.v),(self.laneL_pixel1.u,self.laneL_pixel1.v))
-            ret,self.laneR_pixel0_clipped,self.laneR_pixel1_clipped=cv2.clipLine((0,0,mask.shape[0],mask.shape[1]),(self.laneR_pixel0.u,self.laneR_pixel0.v),(self.laneR_pixel1.u,self.laneR_pixel1.v))
-            points = np.array([self.laneL_pixel0_clipped,self.laneL_pixel1_clipped,self.laneR_pixel1_clipped,self.laneR_pixel0_clipped])
+
+            #print "before clipping"
+            #print self.laneL_pixel0,self.laneL_pixel1
+    #        ret,self.laneL_pixel0_clipped,self.laneL_pixel1_clipped=cv2.clipLine((0,0,mask.shape[0],mask.shape[1]),(self.laneL_pixel0.u,self.laneL_pixel0.v),(self.laneL_pixel1.u,self.laneL_pixel1.v))
+    #        ret,self.laneR_pixel0_clipped,self.laneR_pixel1_clipped=cv2.clipLine((0,0,mask.shape[0],mask.shape[1]),(self.laneR_pixel0.u,self.laneR_pixel0.v),(self.laneR_pixel1.u,self.laneR_pixel1.v))
+    #        points = np.array([self.laneL_pixel0_clipped,self.laneL_pixel1_clipped,self.laneR_pixel1_clipped,self.laneR_pixel0_clipped])
+            points = np.array([[[self.laneL_pixel0.u,self.laneL_pixel0.v]],[[self.laneL_pixel1.u,self.laneL_pixel1.v]],[[self.laneR_pixel1.u,self.laneR_pixel1.v]],[[self.laneR_pixel0.u,self.laneR_pixel0.v]]])
+            #cv2.circle(cv_image_crop,(20,200),10,(0,255,0),2)
             lane_mask = np.ones_like(mask)
-            print self.resolution
-            print mask.shape
+            #print self.resolution
+            #print mask.shape
             print points
             cv2.fillPoly(lane_mask,np.int32([points]),0)
             mask_out = cv2.bitwise_and(mask,lane_mask)
             mask = mask_out
             cv2.drawContours(cv_image_crop,np.int32([points]),-1,(0,0,255),3)
-            #mask[lane_mask]=0
 
-            #mask[self.lane_pixel0.u:self.lane_pixel1.u,self.lane_pixel0.v:self.lane_pixel1.v]=0 #
-            #cv2.rectangle(cv_image,(self.lane_pixel0.u,self.lane_pixel0.v),(self.lane_pixel1.u,self.lane_pixel1.v),(0,0,255),2) #for debuging mark areas that have been erased from mask in red
 
-        #mask1 = mask[mask.shape[0]/4:mask.shape[0]/4*3]: crop image!
-        img_cont, contours, hierarchy=cv2.findContours(mask,cv2.RETR_TREE,cv2.CHAIN_APPROX_SIMPLE)#threshold
+        img_cont, contours, hierarchy=cv2.findContours(mask,cv2.RETR_EXTERNAL,cv2.CHAIN_APPROX_SIMPLE)#threshold
         #cv2.drawContours(cv_image,contours,-1,(0,0,255),3) #for debugging
         duckiefound=0 #init
         distance=0#init
         duckie_loc_pix = Pixel()
+        duckie_locations = []
+        i=0
 
         for item in range(len(contours)):
             cnt = contours[item]
             if len(cnt)>20:
                 x,y,w,h = cv2.boundingRect(cnt)
                 cv2.rectangle(cv_image_crop,(x,y),(x+w,y+h),(0,255,0),2)
-                ((x1,y1),(w1,h1),angle) = cv2.minAreaRect(cnt)
-                print angle
-                #rotrect=cv2.minAreaRect(cnt)
-                #box=cv2.boxPoints(rotrect)
-                #box=np.int0(box)
-                #cv2.rectangle(cv_image_crop,[box],0,(0,255,0),2)
 
-                duckie_loc_pix.u=int(x+w/2)
-                duckie_loc_pix.v=y+h+mask.shape[0]/4 #to compensate for crop
+                duckie_loc_pix.u=int(x+w/2) #transpose??
+                duckie_loc_pix.v=y+h+float(self.resolution[1])*self.crop_factor #to compensate for crop
+                #print x,y
                 duckie_loc_world = self.pixel2ground(duckie_loc_pix)
-                distance = duckie_loc_world.y #currently just takes last contor, change this to biggest contor?
-                print("duckie distance: ", distance)
+                duckie_locations.append([duckie_loc_world.x,duckie_loc_world.y])
+                distance = duckie_loc_world.x #currently just takes last contor, change this to biggest contor?
+                print("duckie nr ",i,": distance: ", distance)
                 duckiefound = 1
+                i=i+1
 
 
         duckie_detected_msg_out.data = duckiefound
 
         self.pub_detection.publish(duckie_detected_msg_out)
         if duckiefound:
-            duckie_point_msg_out=duckie_loc_world
-            self.detected_duckie_point.publish(duckie_point_msg_out)
+            duckie_locations_msg_out.data = np.asarray(duckie_locations)
+            self.pub_duckie_locations.publish(duckie_locations_msg_out)
 
         elapsed_time = (rospy.Time.now() - start).to_sec()
         self.pub_time_elapsed.publish(elapsed_time)
@@ -184,38 +184,43 @@ class DuckieDetectionNode(object):
     def laneHandlingPose(self,lane_pose_msg):
         self.lane_detected = 1
         self.d = lane_pose_msg.d
-        self.phi = lane_pose_msg.phi
+        self.phi_prev = self.phi_new
+        self.phi_new = lane_pose_msg.phi
+        self.phi=self.phi_new
+        #self.phi=0.8*self.phi_new+0.2*self.phi_prev #moving average, does it makes sense??
         laneL_point0 = Point() #left side of lane
         laneL_point1 = Point()
-        laneL_point0.x = 0 + np.sin(-self.phi)*(self.lane_width-self.d+self.lanestrip_width) + np.cos(-self.phi)*self.lane_factor*0.5
-        laneL_point0.y = np.cos(-self.phi)*(self.lane_width-self.d+self.lanestrip_width) + np.sin(-self.phi)*self.lane_factor*0.5
-        laneL_point1.x = laneL_point0.x + np.cos(-self.phi)*self.lane_factor*3
-        laneL_point1.y = laneL_point0.y + np.sin(-self.phi)*self.lane_factor*3
-        print "ground L0"
-        print laneL_point0
+        laneL_point0.x = np.sin(-self.phi)*(self.lane_width-self.d+self.lanestrip_width) + np.cos(-self.phi)*self.lane_factor*0.1
+        laneL_point0.y = np.cos(-self.phi)*(self.lane_width-self.d+self.lanestrip_width) + np.sin(-self.phi)*self.lane_factor*0.1
+        laneL_point1.x = laneL_point0.x + np.cos(-self.phi)*self.lane_factor*1
+        laneL_point1.y = laneL_point0.y + np.sin(-self.phi)*self.lane_factor*1
+        #print "ground L0,L1"
+        #print laneL_point0,laneL_point1
 
         self.laneL_pixel0=self.ground2pixel(laneL_point0)
         self.laneL_pixel1=self.ground2pixel(laneL_point1)
-        self.laneL_pixel0.v -= self.resolution[1]/4 #to compensate for crop
-        self.laneL_pixel1.v -= self.resolution[1]/4#to compensate for crop
+        self.laneL_pixel0.v -= float(self.resolution[1])*self.crop_factor #to compensate for crop
+        self.laneL_pixel1.v -= float(self.resolution[1])*self.crop_factor#to compensate for crop
         #print "psxel L"
         #print self.laneL_pixel0, self.laneL_pixel1
 
         laneR_point0 = Point()#right side of lane
         laneR_point1 = Point()
-        laneR_point0.x = 0 + np.sin(-self.phi)*(self.lane_width-self.d-self.lanestrip_width) + np.cos(-self.phi)*self.lane_factor*0.5 #now taking lane in range (0.5m,1m-->shouldnt be over image border)
-        laneR_point0.y = np.cos(-self.phi)*(self.lane_width-self.d-self.lanestrip_width) + np.sin(-self.phi)*self.lane_factor*0.5
-        laneR_point1.x = laneR_point0.x + np.cos(-self.phi)*self.lane_factor*3
-        laneR_point1.y = laneR_point0.y + np.sin(-self.phi)*self.lane_factor*3
+        laneR_point0.x = laneL_point0.x - np.sin(-self.phi)*2*self.lanestrip_width #np.sin(-self.phi)*(self.lane_width-self.d-self.lanestrip_width) - np.cos(-self.phi)*self.lane_factor #now taking lane in range (0.5m,1m-->shouldnt be over image border)
+        laneR_point0.y = laneL_point0.y - np.cos(-self.phi)*2*self.lanestrip_width#np.cos(-self.phi)*(self.lane_width-self.d-self.lanestrip_width) - np.sin(-self.phi)*self.lane_factor
+        laneR_point1.x = laneL_point1.x - np.sin(-self.phi)*2*self.lanestrip_width#laneR_point0.x + np.cos(-self.phi)*self.lane_factor*10
+        laneR_point1.y = laneL_point1.y - np.cos(-self.phi)*2*self.lanestrip_width#laneR_point0.y + np.sin(-self.phi)*self.lane_factor*10
         #print "ground R"
         #print laneR_point0, laneR_point1
 
         self.laneR_pixel0 = self.ground2pixel(laneR_point0)
         self.laneR_pixel1 = self.ground2pixel(laneR_point1)
-        self.laneR_pixel0.v -= self.resolution[1]/4 #to compensate for crop
-        self.laneR_pixel1.v -= self.resolution[1]/4#to compensate for crop
-        #print "pixel R"
+        #print "pixel R before crop corr"
         #print self.laneR_pixel0, self.laneR_pixel1
+        #print float(self.resolution[1])*self.crop_factor
+        self.laneR_pixel0.v -= float(self.resolution[1])*self.crop_factor #to compensate for crop
+        self.laneR_pixel1.v -= float(self.resolution[1])*self.crop_factor#to compensate for crop
+
 
 
     def pixel2ground(self,pixel):
