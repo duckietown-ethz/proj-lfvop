@@ -20,13 +20,13 @@ class Dynamic_Controller(DTROS):
         self.transition_time = 4.0 #sec
         self.lanewidth = 0.2175
 
-        self.duckieDist = 100
-        self.duckieSide = 100
+
         self.max_vel = 7 #in m/s?? todo
 
-        self.duckieDetected=False
+        self.duckie_state=False
         self.head_state = False
         self.tail_state = False
+        self.duckie_pose = np.zeros((2,1))
         self.head_veh_pose = np.zeros((2,1))
         self.head_veh_vel = np.zeros((2,1))
         self.tail_veh_pose = np.zeros((2,1))
@@ -42,13 +42,13 @@ class Dynamic_Controller(DTROS):
         self.sub_vehicle_head = rospy.Subscriber('/%s/led_detection_node/detected_duckiebot_head' %self.veh_name,Float64MultiArray, self.cbHead, queue_size=1)
         self.sub_vehicle_tail_state = rospy.Subscriber('/%s/led_detection_node/detected_duckiebot_tail_state' %self.veh_name,BoolStamped, self.cbTail_state, queue_size=1)
         self.sub_vehicle_tail = rospy.Subscriber('/%s/led_detection_node/detected_duckiebot_tail' %self.veh_name,Float64MultiArray, self.cbTail, queue_size=1)
-        self.sub_duckie_detect = rospy.Subscriber('/%s/duckie_detection_node/detection' %self.veh_name,BoolStamped, self.cbDuckieDetected, queue_size=1)
-        self.sub_duckie_point = rospy.Subscriber('/%s/duckie_detection_node/detected_duckie_point' %self.veh_name,Point, self.cbDuckie, queue_size=1)
+        self.sub_duckie_state = rospy.Subscriber('/%s/duckie_detection_node/detected_duckie_state' %self.veh_name,BoolStamped, self.cbDuckie_state, queue_size=1)
+        self.sub_duckie_location = rospy.Subscriber('/%s/duckie_detection_node/detected_duckie_location' %self.veh_name,Float64MultiArray, self.cbDuckie, queue_size=1)
 
     def cbHead(self,msg):
         self.head_veh_pose = msg.data[0]
         self.head_vel = msg.data[2]
-	print ("headbot position: ", self.head_veh_pose)
+        print ("headbot position: ", self.head_veh_pose)
         print ("headbot velocity: ", self.head_vel)
 
     def cbTail(self,msg):
@@ -67,11 +67,11 @@ class Dynamic_Controller(DTROS):
             self.overwatch()
 
     def cbDuckie(self,msg):
-        self.duckieDist=msg.y
-        self.duckieSide=msg.x
+        self.duckie_pose=msg.data
+        print ("duckie position: ", self.duckie_pose)
 
-    def cbDuckieDetected(self,msg):
-        self.duckieDetected=msg.data
+    def cbDuckie_state(self,msg):
+        self.duckie_state=msg.data
 
     def overwatch(self):
         if self.tail_vel < 0.5 * self.max_vel:
