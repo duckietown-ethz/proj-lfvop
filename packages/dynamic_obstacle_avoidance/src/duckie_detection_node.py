@@ -8,6 +8,7 @@ from sensor_msgs.msg import CompressedImage, Image
 from std_msgs.msg import Float32, Float64MultiArray
 import cv2
 import numpy as np
+import math
 import os
 import rospkg
 import rospy
@@ -73,6 +74,8 @@ class DuckieDetectionNode(object):
         self.lane_seg=np.array([])
         self.lane_detected = 0
         self.phi_new=0
+        self.memory_size=[3,4] #3 timesteps, 4 duckies
+        self.detection_memory=np.zeros((3,8)) #memory of 3, for max 4 duckies
 
         self.yellow_low = np.array([20,100,100]) #load from yaml file in the future
         self.yellow_high = np.array([30,255,255])
@@ -132,10 +135,7 @@ class DuckieDetectionNode(object):
     #        ret,self.laneR_pixel0_clipped,self.laneR_pixel1_clipped=cv2.clipLine((0,0,mask.shape[0],mask.shape[1]),(self.laneR_pixel0.u,self.laneR_pixel0.v),(self.laneR_pixel1.u,self.laneR_pixel1.v))
     #        points = np.array([self.laneL_pixel0_clipped,self.laneL_pixel1_clipped,self.laneR_pixel1_clipped,self.laneR_pixel0_clipped])
             points = np.array([[[self.laneL_pixel0.u,self.laneL_pixel0.v]],[[self.laneL_pixel1.u,self.laneL_pixel1.v]],[[self.laneR_pixel1.u,self.laneR_pixel1.v]],[[self.laneR_pixel0.u,self.laneR_pixel0.v]]])
-            #cv2.circle(cv_image_crop,(20,200),10,(0,255,0),2)
             lane_mask = np.ones_like(mask)
-            #print self.resolution
-            #print mask.shape
             print points
             cv2.fillPoly(lane_mask,np.int32([points]),0)
             mask_out = cv2.bitwise_and(mask,lane_mask)
@@ -144,12 +144,16 @@ class DuckieDetectionNode(object):
 
 
         img_cont, contours, hierarchy=cv2.findContours(mask,cv2.RETR_EXTERNAL,cv2.CHAIN_APPROX_SIMPLE)#threshold
-        #cv2.drawContours(cv_image,contours,-1,(0,0,255),3) #for debugging
         duckiefound=0 #init
         distance=0#init
         duckie_loc_pix = Pixel()
         duckie_locations = []
         i=0
+
+        np.delete(self.detection_memory,0,0) #delete first row
+        np.append(self.detection_memory,np.zeros((1,8)),0)#add empty row at the end
+        #self.detection_memory[0][:]=self.detection_memory[1][:]
+        #self.detection_memory[1][:]=np.zeros(1,2) #for 4 duckies max
 
         for item in range(len(contours)):
             cnt = contours[item]
@@ -165,15 +169,57 @@ class DuckieDetectionNode(object):
                 distance = duckie_loc_world.x #currently just takes last contor, change this to biggest contor?
                 print("duckie nr ",i,": distance: ", distance)
                 duckiefound = 1
+                self.detection_memory[-1][i*2:i*2+2]=[duckie_loc_world.x,duckie_loc_world.y]
+                #np.append(self.detection_memory, [duckie_loc_world.x,duckie_loc_world.y], 0)
                 i=i+1
 
 
-        duckie_detected_msg_out.data = duckiefound
 
+        if duckiefound:#change. test for every other car for all times in array
+            dist_prev_duckie = np.array([
+            math.sqrt((self.detection_memory[2][0]-self.detection_memory[0][0])**2+(self.detection_memory[2][1]-self.detection_memory[0][1])**2),
+            math.sqrt((self.detection_memory[2][0]-self.detection_memory[0][2])**2+(self.detection_memory[2][1]-self.detection_memory[0][3])**2),
+            math.sqrt((self.detection_memory[2][0]-self.detection_memory[0][4])**2+(self.detection_memory[2][1]-self.detection_memory[0][5])**2),
+            math.sqrt((self.detection_memory[2][0]-self.detection_memory[0][6])**2+(self.detection_memory[2][1]-self.detection_memory[0][7])**2),
+            math.sqrt((self.detection_memory[2][2]-self.detection_memory[0][0])**2+(self.detection_memory[2][3]-self.detection_memory[0][1])**2),
+            math.sqrt((self.detection_memory[2][2]-self.detection_memory[0][2])**2+(self.detection_memory[2][3]-self.detection_memory[0][3])**2),
+            math.sqrt((self.detection_memory[2][2]-self.detection_memory[0][4])**2+(self.detection_memory[2][3]-self.detection_memory[0][5])**2),
+            math.sqrt((self.detection_memory[2][2]-self.detection_memory[0][6])**2+(self.detection_memory[2][3]-self.detection_memory[0][7])**2),
+            math.sqrt((self.detection_memory[2][4]-self.detection_memory[0][0])**2+(self.detection_memory[2][5]-self.detection_memory[0][1])**2),
+            math.sqrt((self.detection_memory[2][4]-self.detection_memory[0][2])**2+(self.detection_memory[2][5]-self.detection_memory[0][3])**2),
+            math.sqrt((self.detection_memory[2][4]-self.detection_memory[0][4])**2+(self.detection_memory[2][5]-self.detection_memory[0][5])**2),
+            math.sqrt((self.detection_memory[2][4]-self.detection_memory[0][6])**2+(self.detection_memory[2][5]-self.detection_memory[0][7])**2),
+            math.sqrt((self.detection_memory[2][6]-self.detection_memory[0][0])**2+(self.detection_memory[2][7]-self.detection_memory[0][1])**2),
+            math.sqrt((self.detection_memory[2][6]-self.detection_memory[0][2])**2+(self.detection_memory[2][7]-self.detection_memory[0][3])**2),
+            math.sqrt((self.detection_memory[2][6]-self.detection_memory[0][4])**2+(self.detection_memory[2][7]-self.detection_memory[0][5])**2),
+            math.sqrt((self.detection_memory[2][6]-self.detection_memory[0][6])**2+(self.detection_memory[2][7]-self.detection_memory[0][7])**2),
+            math.sqrt((self.detection_memory[2][0]-self.detection_memory[1][0])**2+(self.detection_memory[2][1]-self.detection_memory[1][1])**2),
+            math.sqrt((self.detection_memory[2][0]-self.detection_memory[1][2])**2+(self.detection_memory[2][1]-self.detection_memory[1][3])**2),
+            math.sqrt((self.detection_memory[2][0]-self.detection_memory[1][4])**2+(self.detection_memory[2][1]-self.detection_memory[1][5])**2),
+            math.sqrt((self.detection_memory[2][0]-self.detection_memory[1][6])**2+(self.detection_memory[2][1]-self.detection_memory[1][7])**2),
+            math.sqrt((self.detection_memory[2][2]-self.detection_memory[1][0])**2+(self.detection_memory[2][3]-self.detection_memory[1][1])**2),
+            math.sqrt((self.detection_memory[2][2]-self.detection_memory[1][2])**2+(self.detection_memory[2][3]-self.detection_memory[1][3])**2),
+            math.sqrt((self.detection_memory[2][2]-self.detection_memory[1][4])**2+(self.detection_memory[2][3]-self.detection_memory[1][5])**2),
+            math.sqrt((self.detection_memory[2][2]-self.detection_memory[1][6])**2+(self.detection_memory[2][3]-self.detection_memory[1][7])**2),
+            math.sqrt((self.detection_memory[2][4]-self.detection_memory[1][0])**2+(self.detection_memory[2][5]-self.detection_memory[1][1])**2),
+            math.sqrt((self.detection_memory[2][4]-self.detection_memory[1][2])**2+(self.detection_memory[2][5]-self.detection_memory[1][3])**2),
+            math.sqrt((self.detection_memory[2][4]-self.detection_memory[1][4])**2+(self.detection_memory[2][5]-self.detection_memory[1][5])**2),
+            math.sqrt((self.detection_memory[2][4]-self.detection_memory[1][6])**2+(self.detection_memory[2][5]-self.detection_memory[1][7])**2),
+            math.sqrt((self.detection_memory[2][6]-self.detection_memory[1][0])**2+(self.detection_memory[2][7]-self.detection_memory[1][1])**2),
+            math.sqrt((self.detection_memory[2][6]-self.detection_memory[1][2])**2+(self.detection_memory[2][7]-self.detection_memory[1][3])**2),
+            math.sqrt((self.detection_memory[2][6]-self.detection_memory[1][4])**2+(self.detection_memory[2][7]-self.detection_memory[1][5])**2),
+            math.sqrt((self.detection_memory[2][6]-self.detection_memory[1][6])**2+(self.detection_memory[2][7]-self.detection_memory[1][7])**2)])
+            print dist_prev_duckie
+            if not dist_prev_duckie.any()<0.2: #only set to true if prev close detected
+                duckiefound = 0
+
+        duckie_detected_msg_out.data = duckiefound
         self.pub_detection.publish(duckie_detected_msg_out)
+
         if duckiefound:
             duckie_locations_msg_out.data = np.asarray(duckie_locations)
             self.pub_duckie_locations.publish(duckie_locations_msg_out)
+
 
         elapsed_time = (rospy.Time.now() - start).to_sec()
         self.pub_time_elapsed.publish(elapsed_time)
@@ -186,8 +232,8 @@ class DuckieDetectionNode(object):
         self.d = lane_pose_msg.d
         self.phi_prev = self.phi_new
         self.phi_new = lane_pose_msg.phi
-        self.phi=self.phi_new
-        #self.phi=0.8*self.phi_new+0.2*self.phi_prev #moving average, does it makes sense??
+        #self.phi=self.phi_new
+        self.phi=0.8*self.phi_new+0.2*self.phi_prev #moving average, does it makes sense??
         laneL_point0 = Point() #left side of lane
         laneL_point1 = Point()
         laneL_point0.x = np.sin(-self.phi)*(self.lane_width-self.d+self.lanestrip_width) + np.cos(-self.phi)*self.lane_factor*0.1
