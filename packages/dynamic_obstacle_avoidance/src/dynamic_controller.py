@@ -48,6 +48,8 @@ class Dynamic_Controller(DTROS):
     def cbHead(self,msg):
         self.head_veh_pose = msg.data[0]
         self.head_vel = msg.data[2]
+	print ("headbot position: ", self.head_veh_pose)
+        print ("headbot velocity: ", self.head_vel)
 
     def cbTail(self,msg):
         self.tail_veh_pose = msg.data[0] #only x vel needed?
