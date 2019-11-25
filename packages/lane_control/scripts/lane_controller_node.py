@@ -23,6 +23,7 @@ class lane_controller(object):
         # Setup parameters
         self.velocity_to_m_per_s = 1.53
         self.omega_to_rad_per_s = 4.75
+        self.v_gain = 1.0
         self.setGains()
 
         # Publication
@@ -68,7 +69,7 @@ class lane_controller(object):
         self.sub_fsm_mode = rospy.Subscriber("~fsm_mode", FSMState, self.cbMode, queue_size=1)
 
         self.sub_doffset = rospy.Subscriber("~doffset",Float64, self.cbDoffset,  queue_size=1)     # new suscriber for adjusting d_offset
-
+        self.sub_vgain = rospy.Subscriber("~vgain",Float64, self.cbVgain,  queue_size=1)     # new suscriber for adjusting v_gain
 
         self.msg_radius_limit = BoolStamped()
         self.msg_radius_limit.data = self.use_radius_limit
@@ -89,6 +90,10 @@ class lane_controller(object):
 
     def cbDoffset(self, msg):
         rospy.set_param("~d_offset",msg.data)
+
+    def cbVgain(self, msg):
+        self.v_gain = msg.data
+
 
     def cbStopLineReading(self, msg):
         self.stop_line_distance = np.sqrt(msg.stop_line_point.x**2 + msg.stop_line_point.y**2 + msg.stop_line_point.z**2)
@@ -339,6 +344,7 @@ class lane_controller(object):
                 self.v_ref_possible["implicit_coord"] = self.pose_msg_dict["implicit_coord"].v_ref
 
         self.pose_msg.v_ref = min(self.v_ref_possible.itervalues())
+        self.pose_msg.v_ref = self.pose_msg.v_ref * self.v_gain
         #print 'v_ref global=', self.pose_msg.v_ref #For debugging
 
         if self.pose_msg != self.prev_pose_msg and self.pose_initialized:
@@ -408,7 +414,7 @@ class lane_controller(object):
         prev_heading_err = self.heading_err
 
         self.cross_track_err = pose_msg.d - self.d_offset
-        
+
         self.heading_err = pose_msg.phi
 
         car_control_msg = Twist2DStamped()

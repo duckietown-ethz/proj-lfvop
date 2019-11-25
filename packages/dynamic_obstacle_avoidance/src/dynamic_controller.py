@@ -17,8 +17,8 @@ class Dynamic_Controller(DTROS):
 
         self.veh_name = rospy.get_namespace().strip("/")
         self.stepsize = 4
-        self.transition_time = 4.0 #sec
-        self.lanewidth = 0.2175
+        self.transition_time = 4 #sec
+        self.lanewidth = 0.2 #0.2175
 
         self.duckieDist = 100
         self.duckieSide = 100
@@ -37,6 +37,7 @@ class Dynamic_Controller(DTROS):
 
         # construct publisher
         self.pub_doffset = rospy.Publisher('lane_controller_node/doffset', Float64, queue_size=1)
+        self.pub_vgain = rospy.Publisher('lane_controller_node/vgain', Float64, queue_size=1)
         #self.sub_bumper = rospy.Subscriber('/%s/vehicle_detection_node/detection' %self.veh_name,BoolStamped, self.cbOvertake, queue_size=1)
         self.sub_vehicle_head_state = rospy.Subscriber('/%s/led_detection_node/detected_duckiebot_head_state' %self.veh_name,BoolStamped, self.cbHead_state, queue_size=1)
         self.sub_vehicle_head = rospy.Subscriber('/%s/led_detection_node/detected_duckiebot_head' %self.veh_name,Float64MultiArray, self.cbHead, queue_size=1)
@@ -87,7 +88,9 @@ class Dynamic_Controller(DTROS):
             self.offset += self.lanewidth/float(self.stepsize) #write
             rospy.sleep(self.transition_time/float(self.stepsize))
 
+        self.pub_vgain.publish(1.4)     #accelerate
         rospy.sleep(3.) #time on left lane, make dependend on self.rel_vel
+        self.pub_vgain.publish(1)       #decelerate
         print "going back to the right lane"
         for i in range(0,self.stepsize):
             self.offset -= self.lanewidth/float(self.stepsize) #write
