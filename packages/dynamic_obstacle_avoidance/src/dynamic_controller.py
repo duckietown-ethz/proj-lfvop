@@ -18,7 +18,7 @@ class Dynamic_Controller(DTROS):
         self.veh_name = rospy.get_namespace().strip("/")
         self.stepsize = 4
         self.transition_time = 4.0 #sec
-        self.lanewidth = 0.2175
+        self.lanewidth = 0.22 #0.2175
 
 
         self.max_vel = 7 #in m/s?? todo
@@ -33,10 +33,12 @@ class Dynamic_Controller(DTROS):
         self.tail_veh_vel = np.zeros((2,1))
         self.rel_vel = 0.0
 
-        self.offset = 0.0
+        self.d_offset = 0.0
+        self.gain_calib = rospy.get_param("/%s/kinematics_node/gain" %self.veh_name)
+        self.gain = self.gain_calib
+        self.gain_overtaking = 1.3
 
         # construct publisher
-        self.pub_doffset = rospy.Publisher('lane_controller_node/doffset', Float64, queue_size=1)
         #self.sub_bumper = rospy.Subscriber('/%s/vehicle_detection_node/detection' %self.veh_name,BoolStamped, self.cbOvertake, queue_size=1)
         self.sub_vehicle_head_state = rospy.Subscriber('/%s/led_detection_node/detected_duckiebot_head_state' %self.veh_name,BoolStamped, self.cbHead_state, queue_size=1)
         self.sub_vehicle_head = rospy.Subscriber('/%s/led_detection_node/detected_duckiebot_head' %self.veh_name,Float64MultiArray, self.cbHead, queue_size=1)
@@ -48,14 +50,12 @@ class Dynamic_Controller(DTROS):
     def cbHead(self,msg):
         self.head_veh_pose = msg.data[0]
         self.head_vel = msg.data[2]
-        print ("headbot position: ", self.head_veh_pose)
-        print ("headbot velocity: ", self.head_vel)
+        rospy.loginfo("[%s] headbot position: %f , headbot velocity: %f  " % (self.node_name, self.head_veh_pose, self.head_vel))
 
     def cbTail(self,msg):
         self.tail_veh_pose = msg.data[0] #only x vel needed?
         self.tail_vel = msg.data[2]
-        print ("tailbot position: ", self.tail_veh_pose)
-        print ("tailbot velocity: ", self.tail_vel)
+        rospy.loginfo("[%s] tailbot position: %f , tailbot velocity: %f  " % (self.node_name, self.tail_veh_pose, self.tail_vel))
 
     def cbHead_state(self,msg):
         self.head_state = msg.data
@@ -63,7 +63,6 @@ class Dynamic_Controller(DTROS):
     def cbTail_state(self,msg):
         self.tail_state = msg.data
         if self.tail_state: #if we see car before us, go to check if overtaking is possible
-            print "starting overwatch"
             self.overwatch()
 
     def cbDuckie(self,msg):
@@ -74,35 +73,39 @@ class Dynamic_Controller(DTROS):
         self.duckie_state=msg.data
 
     def overwatch(self):
+        rospy.loginfo("[%s] starting overwatch.." % self.node_name)
         if self.tail_vel < 0.5 * self.max_vel:
-            print "tailbot slower than 0.5 * max_vel "
-            if self.tail_veh_pose > 0.15 and self.tail_veh_pose < 1: #and if on the street before me, look at self.tail[1]
-                print "tailbot is with in overtaking range"
+            rospy.loginfo("[%s] velocity requirement fullfilled!" % self.node_name)
+            if self.tail_veh_pose > 0.15 and self.tail_veh_pose < 1: #and if on the street before me, look at self.tail[1]ge"
+                rospy.loginfo("[%s] tailbot close enough for overtaking" % self.node_name)
                 if not self.head_state: #if no car on the left lane
+                    rospy.loginfo("[%s] no car on the left lane, start overtaking" % self.node_name)
                     self.rel_vel = 0.1  # todo!!!!!!!!!!!!!!!!
                     self.overtake()
 
-
     def overtake(self):
-        print "overtaking now!"
+        rospy.loginfo("[%s] overtaking now, going to the left lane!" % self.node_name)
         for i in range(0,self.stepsize):
-            self.offset += self.lanewidth/float(self.stepsize) #write
+            self.d_offset += self.lanewidth/float(self.stepsize) #write
             rospy.sleep(self.transition_time/float(self.stepsize))
 
-        rospy.sleep(3.) #time on left lane, make dependend on self.rel_vel
-        print "going back to the right lane"
+        self.gain = self.gain_overtaking    #accelerate
+        rospy.sleep(3.)                     #time on left lane, make dependend on self.rel_vel
+        self.gain = self.gain_calib         #decelerate
+        rospy.loginfo("[%s] going back to the right lane" % self.node_name)
+
         for i in range(0,self.stepsize):
-            self.offset -= self.lanewidth/float(self.stepsize) #write
+            self.d_offset -= self.lanewidth/float(self.stepsize) #write
             rospy.sleep(self.transition_time/float(self.stepsize))
-        self.offset = 0.0
+        self.d_offset = 0.0
+        rospy.loginfo("[%s] setting d_offset to zero!" % self.node_name)
 
     def run(self):
         # publish message every 0.1 second
         rate = rospy.Rate(50) # 1Hz
         while not rospy.is_shutdown():
-            message = self.offset
-            #rospy.loginfo("Offset published: '%f'" % message)
-            self.pub_doffset.publish(message)
+            rospy.set_param("/%s/lane_controller_node/d_offset" %self.veh_name, self.d_offset)
+            rospy.set_param("/%s/kinematics_node/gain" %self.veh_name, self.gain)
             rate.sleep()
 
 if __name__ == '__main__':
