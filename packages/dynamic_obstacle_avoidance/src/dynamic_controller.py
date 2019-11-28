@@ -7,6 +7,8 @@ from duckietown import DTROS
 from std_msgs.msg import String, Float64, Float32, Float64MultiArray
 from geometry_msgs.msg import Point32, Point
 from duckietown_msgs.msg import BoolStamped
+from duckietown_msgs.srv import SetCustomLEDPattern
+from duckietown_msgs.msg import LEDPattern
 
 
 class Dynamic_Controller(DTROS):
@@ -16,10 +18,17 @@ class Dynamic_Controller(DTROS):
         super(Dynamic_Controller, self).__init__(node_name=node_name)
 
         self.veh_name = rospy.get_namespace().strip("/")
+
+        # changing LED to two white in the front and two red in the back
+        self.set_led_pattern = rospy.ServiceProxy('/%s/led_emitter_node/set_custom_pattern' % self.veh_name, SetCustomLEDPattern)
+        pattern = LEDPattern()
+        pattern.color_list = ["white","red","switchedoff","red","white"]
+        pattern.frequency = 0.0
+        self.set_led_pattern(pattern)
+
         self.stepsize = 4
         self.transition_time = 4.0 #sec
         self.lanewidth = 0.22 #0.2175
-
 
         self.max_vel = 7 #in m/s?? todo
 
