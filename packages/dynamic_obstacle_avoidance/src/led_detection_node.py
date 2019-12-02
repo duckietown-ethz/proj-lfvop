@@ -183,28 +183,27 @@ class LEDDetectionNode(object):
         x2db=0
         y1db=0
         y2db=0
-        
+
         redfound=0
         whitefound=0
-        print("startt")
         for i,key1 in enumerate(keypoints_un):
             for j,key2 in enumerate(keypoints_un):
                 if key1!=key2:
                     if abs((key1.size-key2.size)/key1.size)<0.4: #same size keys maybe change parameter
                         if abs((key1.pt[1]-key2.pt[1]))<key1.size/1: #same y coordinate maybe change parameter
                             dist=abs((key1.pt[0]-key2.pt[0]))
-                            print(dist/key1.size)
+                            #print(dist/key1.size)
                             #print(key1.size*4+key1.size)
                             dist_est=0.12*key1.size/0.01
                             #if dist>dist_est*0.4 and dist <dist_est*1.8: #roughly right distance compared to light size
-                            
+
 
                             pixel1= cv_image_color[int(keypoints[i].pt[1]), int(keypoints[i].pt[0])]
                             pixel2= cv_image_color[int(keypoints[j].pt[1]), int(keypoints[j].pt[0])]
 
                             blue1=pixel1[0]
                             blue2=pixel2[0]
-                            print("blue value: "+str(blue1))
+                            #print("blue value: "+str(blue1))
                             #print(dist/key1.size)
                             bluethreshold=225
                             #check if the blue value of the led light is matching the red back or the white front
@@ -241,7 +240,7 @@ class LEDDetectionNode(object):
             #f=318 #figure out how to get focal length of robot calibration
 
             depth=0.12*self.fy/abs(x2-x1)
-            print("Depth: " +str(depth))
+            #print("Depth: " +str(depth))
             imheight, imwidth = cv_image.shape[:2]
             midt=(x1+x2)/2-imwidth/2
             Midt=midt/self.fx*depth
@@ -264,7 +263,7 @@ class LEDDetectionNode(object):
             #f=318 #figure out how to get focal length of robot calibration
 
             depth=0.12*self.fy/abs(x2b-x1b)
-            print("Depth: " +str(depth))
+            #print("Depth: " +str(depth))
             imheight, imwidth = cv_image.shape[:2]
             midt=(x1b+x2b)/2-imwidth/2
             Midt=midt/self.fx*depth
@@ -282,11 +281,11 @@ class LEDDetectionNode(object):
             self.pub_detected_duckiebot_tail.publish(data_to_send)
             detected_duckiebot_tail_state.data=1
 
-        else:
-            print("no car found")
+        # else:
+        #     print("no car found")
 
         # print(corners)
-        
+
 
         self.pub_detected_duckiebot_tail_state.publish(detected_duckiebot_tail_state)
         self.pub_detected_duckiebot_front_state.publish(detected_duckiebot_front_state)
@@ -339,4 +338,3 @@ if __name__ == '__main__':
     rospy.init_node('led_detection', anonymous=False)
     led_detection_node = LEDDetectionNode()
     rospy.spin()
-
