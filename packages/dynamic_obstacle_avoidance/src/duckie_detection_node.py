@@ -116,11 +116,9 @@ class DuckieDetectionNode(object):
 
         duckiefound = False
         duckie_loc_pix = Pixel()
-        duckie_pos_arr = []
-        duckie_state_arr = 0
         duckie_msg = dynamic_obstacle()
-
-
+        duckie_pos_arr = []
+        duckie_state_arr = []
         keypoints=[]
         i=0
 
@@ -157,11 +155,15 @@ class DuckieDetectionNode(object):
                 print ("duckie side: ", duckie_side)
                 duckie_pos_arr.append([duckie_loc_world.x,duckie_loc_world.y])
                 if abs(duckie_side)<self.lane_width: #right lane
-                   duckie_state_arr.append([1])
+                    duckie_state_arr.append([1])
                 elif duckie_side>self.lane_width and duckie_side<self.lane_width*3: #left lane
-                   duckie_state_arr.append([2])
+                    duckie_state_arr.append([2])
+                else:
+                    duckie_state_arr.append([0]) #write zero if no duckie detected
 
                 i=i+1
+        else:
+            duckie_state_arr.append([0]) #write zero if no duckie detected
 
         #print duckie_locations
         # duckie_detected_msg_out.data = duckiefound
@@ -170,9 +172,10 @@ class DuckieDetectionNode(object):
             # duckie_locations_msg_out.data = np.array(duckie_locations).ravel()
             # self.pub_duckie_locations.publish(duckie_locations_msg_out)
 
-        duckie_msg.pos=duckie_pos_arr.ravel()
-        duckie_msg.state=duckie_state_arr.ravel().astype(uint8)
+        duckie_msg.pos=np.array(duckie_pos_arr).ravel()
+        duckie_msg.state=np.array(duckie_state_arr).ravel()
         duckie_msg.vel=np.array([])
+        duckie_msg.header.stamp = rospy.Time.now()
         self.pub_duckie.publish(duckie_msg)
 
 
