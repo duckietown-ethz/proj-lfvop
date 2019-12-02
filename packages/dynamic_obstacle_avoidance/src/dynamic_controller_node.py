@@ -90,7 +90,7 @@ class Dynamic_Controller(DTROS):
         self.duckie_state=msg.data
 
     def cbCarCmd(self, car_cmd_msg):
-        print "hi, i'm here!!"
+        # print "hi, i'm here!!"
         car_cmd_msg_current = Twist2DStamped()
         car_cmd_msg_current = car_cmd_msg
         car_cmd_msg_current.header.stamp = rospy.Time.now()
@@ -146,12 +146,12 @@ class Dynamic_Controller(DTROS):
         while not rospy.is_shutdown():
             rospy.set_param("/%s/lane_controller_node/d_offset" %self.veh_name, self.d_offset)
             rospy.set_param("/%s/kinematics_node/gain" %self.veh_name, self.gain)
-            if self.stop:
-                self.gain = 0
-            else:
-                self.gain = self.gain_calib
+            # if self.stop:
+            #     self.gain = 0
+            # else:
+            #     self.gain = self.gain_calib
             self.overwatch()
-            print self.stop
+            # print self.stop
             rate.sleep()
 
 
