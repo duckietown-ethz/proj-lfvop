@@ -125,11 +125,11 @@ class Dynamic_Controller(DTROS):
         self.gain = self.gain_overtaking    #accelerate
         t_start = rospy.get_rostime().secs
         while (t_start + 3) > rospy.get_rostime().secs:
-            if self.head_state or self.duckie_left_state:
+            if self.head_state or self.duckie_left_state: #stop if vehicle or duckie are facing us on left lane
                 self.stop = True
-                while not self.head_state or self.duckie_left_state:
+                while self.head_state or self.duckie_left_state:
                     rospy.sleep(0.5)
-                self.stop = False
+                self.stop = False #as soon as left lane is free again, we exit stop and continue driving on left lane
             rospy.sleep(0.1)                     #time on left lane, make dependend on self.rel_vel
         self.gain = self.gain_calib         #decelerate
         rospy.loginfo("[%s] going back to the right lane" % self.node_name)
