@@ -34,6 +34,7 @@ class Dynamic_Controller(DTROS):
         self.max_vel = 7 #in m/s?? todo
         self.stop = False
         self.stop_prev = False
+        self.overtaking = False
 
         self.duckie_state=False
         self.head_state = False
@@ -101,23 +102,27 @@ class Dynamic_Controller(DTROS):
         self.car_cmd_pub.publish(car_cmd_msg_current)
 
     def overwatch(self):
-        if self.back_state or self.duckie_right_state: #if we see car before us, go to check if overtaking is possible
-            rospy.loginfo("[%s] checking logic" % self.node_name)
-            if not (self.head_state or self.duckie_left_state): #if no car on the left lane
-                rospy.loginfo("[%s] no car or duckie on the left lane, start overtaking" % self.node_name)
-                if (self.back_vel < 0.5 * self.max_vel) or self.duckie_right_state:
-                    rospy.loginfo("[%s] backbot slow enouself.head_state or self.duckie_left_stategh or duckie_right!" % self.node_name)
-                    if (self.back_veh_pose > 0.15 and self.back_veh_pose < 1) or (self.duckie_right_pose > 0.15 and self.duckie_right_pose < 1): #and if on the street before me, look at self.back[1]ge"
-                        rospy.loginfo("[%s] backbot or duckie_right close enough for overtaking" % self.node_name)
-                        self.rel_vel = 0.1  # todo!!!!!!!!!!!!!!!!
-                        self.overtake()
-            if self.back_veh_pose < 0.15 or self.duckie_right_pose < 0.15:
-                self.stop = True
-            else:
-                self.stop = False
+        if not self.overtaking:
+            if self.back_state or self.duckie_right_state: #if we see car before us, go to check if overtaking is possible
+                rospy.loginfo("[%s] checking logic" % self.node_name)
+                if not (self.head_state or self.duckie_left_state): #if no car on the left lane
+                    rospy.loginfo("[%s] no car or duckie on the left lane" % self.node_name)
+                    if (self.back_vel < 0.5 * self.max_vel) or self.duckie_right_state:
+                        rospy.loginfo("[%s] backbot slow enough or duckie_right!" % self.node_name)
+                        if (self.back_veh_pose > 0.15 and self.back_veh_pose < 1) or (self.duckie_right_pose > 0.15 and self.duckie_right_pose < 1): #and if on the street before me, look at self.back[1]ge"
+                            rospy.loginfo("[%s] backbot or duckie_right close enough for overtaking" % self.node_name)
+                            self.rel_vel = 0.1  # todo!!!!!!!!!!!!!!!!
+                            self.overtake()
+
+                if self.back_veh_pose < 0.15 or self.duckie_right_pose < 0.15:
+                    self.stop = True
+                else:
+                    self.stop = False
 
     def overtake(self):
+        self.overtaking = True
         rospy.loginfo("[%s] overtaking now, going to the left lane!" % self.node_name)
+
         for i in range(0,self.stepsize):
             self.d_offset += self.lanewidth/float(self.stepsize) #write
             rospy.sleep(self.transition_time/float(self.stepsize))
@@ -138,7 +143,9 @@ class Dynamic_Controller(DTROS):
             self.d_offset -= self.lanewidth/float(self.stepsize) #write
             rospy.sleep(self.transition_time/float(self.stepsize))
         self.d_offset = 0.0
+
         rospy.loginfo("[%s] setting d_offset to zero!" % self.node_name)
+        self.overtaking = False
 
     def run(self):
         # publish message every 0.1 second
