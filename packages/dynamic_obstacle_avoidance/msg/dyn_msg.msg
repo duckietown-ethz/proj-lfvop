@@ -1,0 +1,2 @@
+string message_details
+uint32 number_file
