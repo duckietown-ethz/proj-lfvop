@@ -125,6 +125,7 @@ class Dynamic_Controller(DTROS):
 
         for i in range(0,self.stepsize):
             self.d_offset += self.lanewidth/float(self.stepsize) #write
+            rospy.set_param("/%s/lane_controller_node/d_offset" %self.veh_name, self.d_offset)
             rospy.sleep(self.transition_time/float(self.stepsize))
 
         self.gain = self.gain_overtaking    #accelerate
@@ -141,6 +142,7 @@ class Dynamic_Controller(DTROS):
 
         for i in range(0,self.stepsize):
             self.d_offset -= self.lanewidth/float(self.stepsize) #write
+            rospy.set_param("/%s/lane_controller_node/d_offset" %self.veh_name, self.d_offset)
             rospy.sleep(self.transition_time/float(self.stepsize))
         self.d_offset = 0.0
 
@@ -149,19 +151,18 @@ class Dynamic_Controller(DTROS):
 
     def run(self):
         # publish message every 0.1 second
-        rate = rospy.Rate(50) # 1Hz
+        rate = rospy.Rate(20) # 1Hz
         while not rospy.is_shutdown():
-            rospy.set_param("/%s/lane_controller_node/d_offset" %self.veh_name, self.d_offset)
-            rospy.set_param("/%s/kinematics_node/gain" %self.veh_name, self.gain)
+            self.overwatch()
+            # rospy.set_param("/%s/lane_controller_node/d_offset" %self.veh_name, self.d_offset)
+            # rospy.set_param("/%s/kinematics_node/gain" %self.veh_name, self.gain)
             # if self.stop:
             #     self.gain = 0
             # else:
             #     self.gain = self.gain_calib
-            self.overwatch()
+
             # print self.stop
             rate.sleep()
-
-
 
 if __name__ == '__main__':
     # create the node

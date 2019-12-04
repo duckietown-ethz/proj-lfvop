@@ -1,7 +1,7 @@
 <launch>
 
-  <remap from="vehicle_avoidance_control_node/car_cmd" to="dynamic_controller_node/car_cmd" />
-  <remap from="dynamic_controller_node/car_cmd_in" to="lane_controller_node/car_cmd"/>
+  <remap from="lane_controller_node/car_cmd_out" to="dynamic_controller_node/car_cmd_in"/>
+  <remap from="dynamic_controller_node/car_cmd" to="lane_controller_node/car_cmd" />
   <include file="$(find dynamic_obstacle_avoidance)/launch/lane_following.launch"/>
   <remap from="led_detection_node/image" to="camera_node/image/compressed"/>
   <remap from="duckie_detection_node/image" to="camera_node/image/compressed"/>
@@ -11,7 +11,7 @@
   <group ns="$(arg veh)">
     <node pkg="dynamic_obstacle_avoidance" type="dynamic_controller_node.py" name="dynamic_controller_node" output="screen"/>
     <node pkg="dynamic_obstacle_avoidance" type="led_detection_node.py" name="led_detection_node" output="screen"/>
-    <node pkg="dynamic_obstacle_avoidance" type="duckie_detection_node.py" name="duckie_detection_node" output="screen"/>
+    <!-- <node pkg="dynamic_obstacle_avoidance" type="duckie_detection_node.py" name="duckie_detection_node" output="screen"/> -->
   </group>
 
 </launch>
