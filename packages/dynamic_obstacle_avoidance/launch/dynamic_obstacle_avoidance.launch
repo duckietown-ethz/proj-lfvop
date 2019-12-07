@@ -11,7 +11,7 @@
   <group ns="$(arg veh)">
     <node pkg="dynamic_obstacle_avoidance" type="dynamic_controller_node.py" name="dynamic_controller_node" output="screen"/>
     <node pkg="dynamic_obstacle_avoidance" type="led_detection_node.py" name="led_detection_node" output="screen"/>
-    <!-- <node pkg="dynamic_obstacle_avoidance" type="duckie_detection_node.py" name="duckie_detection_node" output="screen"/> -->
+    <node pkg="dynamic_obstacle_avoidance" type="duckie_detection_node.py" name="duckie_detection_node" output="screen"/>
   </group>
 
 </launch>

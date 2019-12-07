@@ -10,6 +10,7 @@ from geometry_msgs.msg import Point32, Point
 from duckietown_msgs.msg import BoolStamped, Twist2DStamped
 from duckietown_msgs.srv import SetCustomLEDPattern
 from duckietown_msgs.msg import LEDPattern
+from dynamic_obstacle_avoidance.msg import dynamic_obstacle
 
 
 class Dynamic_Controller(DTROS):
@@ -62,20 +63,19 @@ class Dynamic_Controller(DTROS):
         self.sub_vehicle_head = rospy.Subscriber('/%s/led_detection_node/detected_duckiebot_head' %self.veh_name,Float64MultiArray, self.cbHead, queue_size=1)
         self.sub_vehicle_back_state = rospy.Subscriber('/%s/led_detection_node/detected_duckiebot_tail_state' %self.veh_name,BoolStamped, self.cbBack_state, queue_size=1)
         self.sub_vehicle_back = rospy.Subscriber('/%s/led_detection_node/detected_duckiebot_tail' %self.veh_name,Float64MultiArray, self.cbBack, queue_size=1)
-        self.sub_duckie_state = rospy.Subscriber('/%s/duckie_detection_node/detected_duckie_state' %self.veh_name,BoolStamped, self.cbDuckie_state, queue_size=1)
-        self.sub_duckie_location = rospy.Subscriber('/%s/duckie_detection_node/detected_duckie_location' %self.veh_name,Float64MultiArray, self.cbDuckie, queue_size=1)
+        self.sub_duckie = rospy.Subscriber('/%s/duckie_detection_node/detected_duckie' %self.veh_name, dynamic_obstacle, self.cbDuckie, queue_size=1)
         self.sub_car_cmd = rospy.Subscriber("~car_cmd_in", Twist2DStamped, self.cbCarCmd, queue_size=1)
         self.car_cmd_pub = rospy.Publisher("~car_cmd", Twist2DStamped, queue_size = 1)
 
     def cbHead(self,msg):
         self.head_veh_pose = msg.data[0]
-        self.head_vel = msg.data[2]
-        rospy.loginfo("[%s] headbot position: %f , headbot velocity: %f  " % (self.node_name, self.head_veh_pose, self.head_vel))
+        self.head_veh_vel = msg.data[2]
+        rospy.loginfo("[%s] headbot position: %f , headbot velocity: %f  " % (self.node_name, self.head_veh_pose, self.head_veh_vel))
 
     def cbBack(self,msg):
         self.back_veh_pose = msg.data[0] #only x vel needed?
-        self.back_vel = msg.data[2]
-        rospy.loginfo("[%s] backbot position: %f , backbot velocity: %f  " % (self.node_name, self.back_veh_pose, self.back_vel))
+        self.back_veh_vel = msg.data[2]
+        rospy.loginfo("[%s] backbot position: %f , backbot velocity: %f  " % (self.node_name, self.back_veh_pose, self.back_veh_vel))
 
     def cbHead_state(self,msg):
         self.head_state = msg.data
@@ -84,11 +84,21 @@ class Dynamic_Controller(DTROS):
         self.back_state = msg.data
 
     def cbDuckie(self,msg):
-        self.duckie_pose=msg.data
-        print ("duckie position: ", self.duckie_pose)
+        state = np.array(msg.state)
+        self.duckie_right_state = any(state==1)
+        self.duckie_left_state = any(state==2)
 
-    def cbDuckie_state(self,msg):
-        self.duckie_state=msg.data
+        if self.duckie_right_state:
+            self.duckie_right_pose = msg.pos[2*np.argwhere(state==1)[0][0]] #only x, only take first detected duckie
+            print ("duckie right pose: ", self.duckie_right_pose)
+        else:
+            self.duckie_right_pose = 0
+
+        if self.duckie_left_state:
+            self.duckie_left_pose = msg.pos[2*np.argwhere(state==2)[0][0]] #only x, only take first detected duckie
+        else:
+            self.duckie_left_pose = 0
+
 
     def cbCarCmd(self, car_cmd_msg):
         # print "hi, i'm here!!"
@@ -107,7 +117,7 @@ class Dynamic_Controller(DTROS):
                 rospy.loginfo("[%s] checking logic" % self.node_name)
                 if not (self.head_state or self.duckie_left_state): #if no car on the left lane
                     rospy.loginfo("[%s] no car or duckie on the left lane" % self.node_name)
-                    if (self.back_vel < 0.5 * self.max_vel) or self.duckie_right_state:
+                    if (self.back_veh_vel < 0.5 * self.max_vel) or self.duckie_right_state:
                         rospy.loginfo("[%s] backbot slow enough or duckie_right!" % self.node_name)
                         if (self.back_veh_pose > 0.15 and self.back_veh_pose < 1) or (self.duckie_right_pose > 0.15 and self.duckie_right_pose < 1): #and if on the street before me, look at self.back[1]ge"
                             rospy.loginfo("[%s] backbot or duckie_right close enough for overtaking" % self.node_name)
