@@ -69,7 +69,7 @@ class DuckieDetectionNode(object):
         self.pub_time_elapsed = rospy.Publisher("~detection_time",
                                                 Float32, queue_size=1)
 
-        self.pub_duckie = rospy.Publisher("~duckie",
+        self.pub_duckie = rospy.Publisher("~detected_duckie",
                                                 dynamic_obstacle, queue_size=1)
 
         self.sub_lane_pose = rospy.Subscriber("~lane_pose", LanePose, self.cbLanePose, queue_size=1)
@@ -130,7 +130,7 @@ class DuckieDetectionNode(object):
         params.filterByArea = True
         params.minArea = 50 #50, good
         params.filterByInertia = True
-        params.minInertiaRatio = 0.3 #0.3, good!!
+        params.minInertiaRatio = 0.5 #0.5, good!!
         params.filterByConvexity = False
         params.maxConvexity = 0.99 #>0.99, not so good
         params.filterByCircularity = False
@@ -150,9 +150,9 @@ class DuckieDetectionNode(object):
                 duckie_loc_world = self.pixel2ground(duckie_loc_pix)
 
                 #self.duckie_rel[0] = duckie_loc_world.x/np.cos(self.phi)
-                duckie_side = np.cos(self.phi)*(duckie_loc_world.y-self.d)-np.sin(self.phi)*duckie_loc_world.x
-                print ("duckie position: ", duckie_loc_world)
-                print ("duckie side: ", duckie_side)
+                duckie_side = np.cos(self.phi)*(duckie_loc_world.y+self.d)+np.sin(self.phi)*duckie_loc_world.x
+                # print ("duckie position: ", duckie_loc_world)
+                # print ("duckie side: ", duckie_side)
                 duckie_pos_arr.append([duckie_loc_world.x,duckie_loc_world.y])
                 if abs(duckie_side)<self.lane_width: #right lane
                     duckie_state_arr.append([1])

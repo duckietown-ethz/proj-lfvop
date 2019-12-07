@@ -8,6 +8,7 @@ from geometry_msgs.msg import Point32, Point
 from duckietown_msgs.msg import BoolStamped
 from duckietown_msgs.srv import SetCustomLEDPattern
 from duckietown_msgs.msg import LEDPattern
+from dynamic_obstacle_avoidance.msg import dynamic_obstacle
 
 
 class Dynamic_Controller(DTROS):
@@ -52,8 +53,7 @@ class Dynamic_Controller(DTROS):
         self.sub_vehicle_head = rospy.Subscriber('/%s/led_detection_node/detected_duckiebot_head' %self.veh_name,Float64MultiArray, self.cbHead, queue_size=1)
         self.sub_vehicle_tail_state = rospy.Subscriber('/%s/led_detection_node/detected_duckiebot_tail_state' %self.veh_name,BoolStamped, self.cbTail_state, queue_size=1)
         self.sub_vehicle_tail = rospy.Subscriber('/%s/led_detection_node/detected_duckiebot_tail' %self.veh_name,Float64MultiArray, self.cbTail, queue_size=1)
-        self.sub_duckie_state = rospy.Subscriber('/%s/duckie_detection_node/detected_duckie_state' %self.veh_name,BoolStamped, self.cbDuckie_state, queue_size=1)
-        self.sub_duckie_location = rospy.Subscriber('/%s/duckie_detection_node/detected_duckie_location' %self.veh_name,Float64MultiArray, self.cbDuckie, queue_size=1)
+        self.sub_duckie = rospy.Subscriber('/%s/duckie_detection_node/detected_duckie' %self.veh_name, dynamic_obstacle, self.cbDuckie, queue_size=1)
 
     def cbHead(self,msg):
         self.head_veh_pose = msg.data[0]
@@ -74,11 +74,8 @@ class Dynamic_Controller(DTROS):
             self.overwatch()
 
     def cbDuckie(self,msg):
-        self.duckie_pose=msg.data
+        self.duckie_pose=msg.pos
         print ("duckie position: ", self.duckie_pose)
-
-    def cbDuckie_state(self,msg):
-        self.duckie_state=msg.data
 
     def overwatch(self):
         rospy.loginfo("[%s] starting overwatch.." % self.node_name)
