@@ -26,10 +26,10 @@ class lane_controller(object):
 
         # Publication
         self.pub_car_cmd = rospy.Publisher("~car_cmd_out", Twist2DStamped, queue_size=1)
-        
+
         # TODO-TAL this is just to acknowledge receiving a msg... We should remove it... (or replace this and the corresponding subscriber with a service)
         self.pub_actuator_limits_received = rospy.Publisher("~actuator_limits_received", BoolStamped, queue_size=1)
-        
+
         self.pub_radius_limit = rospy.Publisher("~radius_limit", BoolStamped, queue_size=1)
 
 
@@ -77,7 +77,7 @@ class lane_controller(object):
 
         #TODO-TAL this time updates the params at 10Hz. Really useful ?
 
-        self.gains_timer = rospy.Timer(rospy.Duration.from_sec(0.1), self.getGains_event)
+        self.gains_timer = rospy.Timer(rospy.Duration.from_sec(0.02), self.getGains_event)
         rospy.loginfo("[%s] Initialized " % (rospy.get_name()))
 
         self.stop_line_distance = 999

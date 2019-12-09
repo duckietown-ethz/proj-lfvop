@@ -48,8 +48,8 @@ class Dynamic_Controller(DTROS):
 
         self.duckie_left_state = False
         self.duckie_right_state = False
-        self.duckie_left_pose = 0
-        self.duckie_right_pose = 0
+        self.duckie_left_pose = 4
+        self.duckie_right_pose = 4
 
         self.d_offset = 0.0
         self.gain_calib = 1.05 #rospy.get_param("/%s/kinematics_node/gain" %self.veh_name)
@@ -67,6 +67,8 @@ class Dynamic_Controller(DTROS):
         self.sub_car_cmd = rospy.Subscriber("~car_cmd_in", Twist2DStamped, self.cbCarCmd, queue_size=1)
         self.sub_fsm_mode = rospy.Subscriber("~fsm_mode", FSMState, self.cbMode, queue_size=1)
         self.car_cmd_pub = rospy.Publisher("~car_cmd", Twist2DStamped, queue_size = 1)
+        rospy.set_param("/%s/lane_detector_node//segment_max_threshold" %self.veh_name, 15)
+        rospy.set_param("/%s/lane_filter_node//matrix_mesh_size" %self.veh_name, 0.4)
 
     def cbMode(self,fsm_state_msg):
         self.fsm_state = fsm_state_msg.state    # String of current FSM state
@@ -129,7 +131,8 @@ class Dynamic_Controller(DTROS):
                             self.rel_vel = 0.1  # todo!!!!!!!!!!!!!!!!
                             self.overtake()
 
-                if self.back_veh_pose < 0.15 or self.duckie_right_pose < 0.15:
+                if (self.back_veh_pose < 0.15 and self.back_state) or (self.duckie_right_pose < 0.15 and self.duckie_right_state):
+                    rospy.logerr("[%s] Emergency stop!" % self.node_name)
                     self.stop = True
                 else:
                     self.stop = False
@@ -147,6 +150,7 @@ class Dynamic_Controller(DTROS):
         t_start = rospy.get_rostime().secs
         while (t_start + 3) > rospy.get_rostime().secs:
             if self.head_state or self.duckie_left_state: #stop if vehicle or duckie are facing us on left lane
+                rospy.logerr("[%s] Emergency stop while overtaking!" % self.node_name)
                 self.stop = True
                 while self.head_state or self.duckie_left_state:
                     rospy.sleep(0.5)
@@ -166,7 +170,7 @@ class Dynamic_Controller(DTROS):
 
     def run(self):
         # publish message every 0.1 second
-        rate = rospy.Rate(20) # 1Hz
+        rate = rospy.Rate(50) # 1Hz
         while not rospy.is_shutdown():
             self.overwatch()
             # rospy.set_param("/%s/lane_controller_node/d_offset" %self.veh_name, self.d_offset)
