@@ -6,6 +6,8 @@
   <remap from="led_detection_node/image" to="camera_node/image/compressed"/>
   <remap from="duckie_detection_node/image" to="camera_node/image/compressed"/>
   <remap from="duckie_detection_node/lane_pose" to="lane_filter_node/lane_pose"/>
+  <remap from="dynamic_controller_node/fsm_mode" to="fsm_node/mode"/>
+
 
 
   <group ns="$(arg veh)">
