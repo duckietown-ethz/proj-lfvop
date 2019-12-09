@@ -38,7 +38,7 @@ class DuckieDetectionNode(object):
         self.publish_boundingbox=1
         self.lanestrip_width = 0.05#0.024 #half of lanestrip width)(including buffer), to the left and to the right
         self.lane_width = 0.1145#0.1025 #(half of lane + half of strip)
-        self.crop_factor = float(1.0/3)
+        self.crop_factor = 0.3
         self.d = 0.0
         self.phi = 0.0
 

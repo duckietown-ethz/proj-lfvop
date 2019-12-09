@@ -4,6 +4,7 @@ import os
 import rospy
 import numpy as np
 import time
+import math
 from duckietown import DTROS
 from std_msgs.msg import String, Float64, Float32, Float64MultiArray
 from geometry_msgs.msg import Point32, Point
@@ -67,8 +68,8 @@ class Dynamic_Controller(DTROS):
         self.sub_car_cmd = rospy.Subscriber("~car_cmd_in", Twist2DStamped, self.cbCarCmd, queue_size=1)
         self.sub_fsm_mode = rospy.Subscriber("~fsm_mode", FSMState, self.cbMode, queue_size=1)
         self.car_cmd_pub = rospy.Publisher("~car_cmd", Twist2DStamped, queue_size = 1)
-        rospy.set_param("/%s/lane_detector_node//segment_max_threshold" %self.veh_name, 15)
-        rospy.set_param("/%s/lane_filter_node//matrix_mesh_size" %self.veh_name, 0.4)
+        # rospy.set_param("/%s/lane_detector_node/segment_max_threshold" %self.veh_name, 15)
+        # rospy.set_param("/%s/lane_filter_node/matrix_mesh_size" %self.veh_name, 0.4)
 
     def cbMode(self,fsm_state_msg):
         self.fsm_state = fsm_state_msg.state    # String of current FSM state
@@ -126,7 +127,7 @@ class Dynamic_Controller(DTROS):
                     rospy.loginfo("[%s] no car or duckie on the left lane" % self.node_name)
                     if (self.back_veh_vel < 0.5 * self.max_vel) or self.duckie_right_state:
                         rospy.loginfo("[%s] backbot slow enough or duckie_right!" % self.node_name)
-                        if (self.back_veh_pose > 0.15 and self.back_veh_pose < 1) or (self.duckie_right_pose > 0.15 and self.duckie_right_pose < 1): #and if on the street before me, look at self.back[1]ge"
+                        if (self.back_veh_pose > 0.15 and self.back_veh_pose < 0.7) or (self.duckie_right_pose > 0.15 and self.duckie_right_pose < 1): #and if on the street before me, look at self.back[1]ge"
                             rospy.loginfo("[%s] backbot or duckie_right close enough for overtaking" % self.node_name)
                             self.rel_vel = 0.1  # todo!!!!!!!!!!!!!!!!
                             self.overtake()
@@ -141,14 +142,15 @@ class Dynamic_Controller(DTROS):
         self.overtaking = True
         rospy.loginfo("[%s] overtaking now, going to the left lane!" % self.node_name)
 
-        for i in range(0,self.stepsize):
-            self.d_offset += self.lanewidth/float(self.stepsize) #write
+        for i in range(1,self.stepsize+1):
+            self.d_offset = math.sin(i*math.pi/(self.stepsize*2)) * self.lanewidth
+            #self.d_offset += self.lanewidth/float(self.stepsize) #write
             rospy.set_param("/%s/lane_controller_node/d_offset" %self.veh_name, self.d_offset)
             rospy.sleep(self.transition_time/float(self.stepsize))
 
         self.gain = self.gain_overtaking    #accelerate
         t_start = rospy.get_rostime().secs
-        while (t_start + 3) > rospy.get_rostime().secs:
+        while (t_start + 4) > rospy.get_rostime().secs:
             if self.head_state or self.duckie_left_state: #stop if vehicle or duckie are facing us on left lane
                 rospy.logerr("[%s] Emergency stop while overtaking!" % self.node_name)
                 self.stop = True
@@ -159,8 +161,9 @@ class Dynamic_Controller(DTROS):
         self.gain = self.gain_calib         #decelerate
         rospy.loginfo("[%s] going back to the right lane" % self.node_name)
 
-        for i in range(0,self.stepsize):
-            self.d_offset -= self.lanewidth/float(self.stepsize) #write
+        for i in range(1,self.stepsize+1):
+            self.d_offset = (1 - math.sin(i*math.pi/(self.stepsize*2)) )* self.lanewidth
+            #self.d_offset -= self.lanewidth/float(self.stepsize) #write
             rospy.set_param("/%s/lane_controller_node/d_offset" %self.veh_name, self.d_offset)
             rospy.sleep(self.transition_time/float(self.stepsize))
         self.d_offset = 0.0
