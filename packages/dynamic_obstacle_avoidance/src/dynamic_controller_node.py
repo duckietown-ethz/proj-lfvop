@@ -7,9 +7,8 @@ import time
 from duckietown import DTROS
 from std_msgs.msg import String, Float64, Float32, Float64MultiArray
 from geometry_msgs.msg import Point32, Point
-from duckietown_msgs.msg import BoolStamped, Twist2DStamped
+from duckietown_msgs.msg import BoolStamped, Twist2DStamped, LEDPattern, FSMState
 from duckietown_msgs.srv import SetCustomLEDPattern
-from duckietown_msgs.msg import LEDPattern
 from dynamic_obstacle_avoidance.msg import dynamic_obstacle
 
 
@@ -56,6 +55,7 @@ class Dynamic_Controller(DTROS):
         self.gain_calib = 1.05 #rospy.get_param("/%s/kinematics_node/gain" %self.veh_name)
         self.gain = self.gain_calib
         self.gain_overtaking = self.gain #1.3
+        self.fsm_state =  "NORMAL_JOYSTICK_CONTROL"
 
         # construct publisher
         #self.sub_bumper = rospy.Subscriber('/%s/vehicle_detection_node/detection' %self.veh_name,BoolStamped, self.cbOvertake, queue_size=1)
@@ -65,7 +65,12 @@ class Dynamic_Controller(DTROS):
         self.sub_vehicle_back = rospy.Subscriber('/%s/led_detection_node/detected_duckiebot_tail' %self.veh_name,Float64MultiArray, self.cbBack, queue_size=1)
         self.sub_duckie = rospy.Subscriber('/%s/duckie_detection_node/detected_duckie' %self.veh_name, dynamic_obstacle, self.cbDuckie, queue_size=1)
         self.sub_car_cmd = rospy.Subscriber("~car_cmd_in", Twist2DStamped, self.cbCarCmd, queue_size=1)
+        self.sub_fsm_mode = rospy.Subscriber("~fsm_mode", FSMState, self.cbMode, queue_size=1)
         self.car_cmd_pub = rospy.Publisher("~car_cmd", Twist2DStamped, queue_size = 1)
+
+    def cbMode(self,fsm_state_msg):
+        self.fsm_state = fsm_state_msg.state    # String of current FSM state
+        print "fsm_state changed in dynamic_controller_node to: " , self.fsm_state
 
     def cbHead(self,msg):
         self.head_veh_pose = msg.data[0]
@@ -112,7 +117,7 @@ class Dynamic_Controller(DTROS):
         self.car_cmd_pub.publish(car_cmd_msg_current)
 
     def overwatch(self):
-        if not self.overtaking:
+        if self.fsm_state == "LANE_FOLLOWING" and not self.overtaking:
             if self.back_state or self.duckie_right_state: #if we see car before us, go to check if overtaking is possible
                 rospy.loginfo("[%s] checking logic" % self.node_name)
                 if not (self.head_state or self.duckie_left_state): #if no car on the left lane

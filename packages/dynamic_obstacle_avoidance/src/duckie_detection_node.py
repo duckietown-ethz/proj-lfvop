@@ -153,11 +153,12 @@ class DuckieDetectionNode(object):
                 duckie_side = np.cos(self.phi)*(duckie_loc_world.y+self.d)+np.sin(self.phi)*duckie_loc_world.x
                 # print ("duckie position: ", duckie_loc_world)
                 # print ("duckie side: ", duckie_side)
-                duckie_pos_arr.append([duckie_loc_world.x,duckie_loc_world.y])
                 if abs(duckie_side)<self.lane_width: #right lane
                     duckie_state_arr.append([1])
+                    duckie_pos_arr.append([duckie_loc_world.x,duckie_loc_world.y])
                 elif duckie_side>self.lane_width and duckie_side<self.lane_width*3: #left lane
                     duckie_state_arr.append([2])
+                    duckie_pos_arr.append([duckie_loc_world.x,duckie_loc_world.y])
                 else:
                     duckie_state_arr.append([0]) #write zero if no duckie detected
 
