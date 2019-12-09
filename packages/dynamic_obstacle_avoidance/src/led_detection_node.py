@@ -72,7 +72,10 @@ class LEDDetectionNode(object):
         self.radialparam=self.intrinsics['D']
         self.Midtold=0
         self.depthold=0
+        self.Midtoldb=0
+        self.deptholdb=0
         self.time = rospy.get_rostime().to_sec()
+        self.timeb = rospy.get_rostime().to_sec()
 
 
     def setupParam(self, param_name, default_value):
@@ -222,7 +225,17 @@ class LEDDetectionNode(object):
         x2d=0
         y1d=0
         y2d=0
-        carfound=0
+        x1b=0
+        x2b=0
+        y1b=0
+        y2b=0
+        x1db=0
+        x2db=0
+        y1db=0
+        y2db=0
+
+        redfound=0
+        whitefound=0
         for i,key1 in enumerate(keypoints_un):
             for j,key2 in enumerate(keypoints_un):
                 if key1!=key2:
@@ -233,15 +246,28 @@ class LEDDetectionNode(object):
                             #print(key1.size*4+key1.size)
                             dist_est=0.12*key1.size/0.01
                             #if dist>dist_est*0.4 and dist <dist_est*1.8: #roughly right distance compared to light size
+
+
                             pixel1= cv_image_color[int(keypoints[i].pt[1]), int(keypoints[i].pt[0])]
                             pixel2= cv_image_color[int(keypoints[j].pt[1]), int(keypoints[j].pt[0])]
+
                             blue1=pixel1[0]
                             blue2=pixel2[0]
                             #print("blue value: "+str(blue1))
                             #print(dist/key1.size)
-                            bluethreshold=235
+                            bluethreshold=225
                             #check if the blue value of the led light is matching the red back or the white front
-                            if (self.frontorback=="back" and blue1<bluethreshold and blue2<bluethreshold) or(self.frontorback=="front" and blue1>=bluethreshold and blue2>=bluethreshold):
+                            if (blue1<bluethreshold and blue2<bluethreshold): #red
+                                x1b=key1.pt[0]
+                                x2b=key2.pt[0]
+                                y1b=key1.pt[1]
+                                y2b=key2.pt[1]
+                                x1db=keypoints[i].pt[0]
+                                x2db=keypoints[j].pt[0]
+                                y1db=keypoints[i].pt[1]
+                                y2db=keypoints[j].pt[1]
+                                redfound=1
+                            if  (blue1>=bluethreshold and blue2>=bluethreshold): #white
                                 x1=key1.pt[0]
                                 x2=key2.pt[0]
                                 y1=key1.pt[1]
@@ -250,9 +276,16 @@ class LEDDetectionNode(object):
                                 x2d=keypoints[j].pt[0]
                                 y1d=keypoints[i].pt[1]
                                 y2d=keypoints[j].pt[1]
-                                carfound=1
+                                whitefound=1
 
-        if carfound==1:
+
+
+        detected_duckiebot_tail_state = BoolStamped()
+        detected_duckiebot_front_state = BoolStamped()
+        detected_duckiebot_tail_state.data = 0
+        detected_duckiebot_front_state.data = 0
+
+        if whitefound==1:
             #fn = dtu.get_duckiefleet_root() + "/calibrations/camera_extrinsic/" + self.veh_name + ".yaml"
             #f=318 #figure out how to get focal length of robot calibration
 
@@ -272,25 +305,43 @@ class LEDDetectionNode(object):
             self.depthold=depth
             data_to_send = Float64MultiArray()  # the data to be sent, initialise the array
             data_to_send.data = [depth,-Midt,vdepth,-vMidt] #pos x,y vel x,y, check minus!!
-            if self.frontorback=="front":
-                self.pub_detected_duckiebot_head.publish(data_to_send)
-            if self.frontorback=="back":
-                self.pub_detected_duckiebot_tail.publish(data_to_send)
+            self.pub_detected_duckiebot_head.publish(data_to_send)
+            detected_duckiebot_front_state.data=1
 
+<<<<<<< HEAD
         else:
             pass
             #print("no car found")
+=======
+        elif redfound==1:
+            #fn = dtu.get_duckiefleet_root() + "/calibrations/camera_extrinsic/" + self.veh_name + ".yaml"
+            #f=318 #figure out how to get focal length of robot calibration
+
+            depth=0.12*self.fy/abs(x2b-x1b)
+            #print("Depth: " +str(depth))
+            imheight, imwidth = cv_image.shape[:2]
+            midt=(x1b+x2b)/2-imwidth/2
+            Midt=midt/self.fx*depth
+            #print(Midt)
+            #self.detected_log.append((Midt,depth))
+            t=rospy.get_rostime().to_sec()
+            vMidt=(Midt-self.Midtoldb)/(t-self.timeb)
+            vdepth=(depth-self.deptholdb)/(t-self.timeb)
+
+            self.timeb = t
+            self.Midtoldb=Midt
+            self.deptholdb=depth
+            data_to_send = Float64MultiArray()  # the data to be sent, initialise the array
+            data_to_send.data = [depth,-Midt,vdepth,-vMidt] #pos x,y vel x,y, check minus!!
+            self.pub_detected_duckiebot_tail.publish(data_to_send)
+            detected_duckiebot_tail_state.data=1
+
+        # else:
+        #     print("no car found")
+>>>>>>> dynamic_logic
 
         # print(corners)
-        detected_duckiebot_tail_state = BoolStamped()
-        detected_duckiebot_front_state = BoolStamped()
 
-        if self.frontorback=="front":
-            detected_duckiebot_tail_state.data = 0
-            detected_duckiebot_front_state.data = carfound
-        if self.frontorback=="back":
-            detected_duckiebot_tail_state.data = carfound
-            detected_duckiebot_front_state.data = 0
 
         self.pub_detected_duckiebot_tail_state.publish(detected_duckiebot_tail_state)
         self.pub_detected_duckiebot_front_state.publish(detected_duckiebot_front_state)
@@ -323,14 +374,23 @@ class LEDDetectionNode(object):
             cv_image = cv2.drawKeypoints(cv_image, keypoints, np.array([]), (0,0,255), cv2.DRAW_MATCHES_FLAGS_DRAW_RICH_KEYPOINTS)
             cv_image1 = cv2.drawKeypoints(cv_image, keypoints, np.array([]), (0,0,255), cv2.DRAW_MATCHES_FLAGS_DRAW_RICH_KEYPOINTS)
 
+            #front
             cv_image1=cv2.circle(cv_image1,(int(x1),int(y1)), 5, (0,255,0), 2)
             cv_image1=cv2.circle(cv_image1,(int(x2),int(y2)), 5, (0,255,0), 2)
             cv_image1=cv2.circle(cv_image1,(int(x1d),int(y1d)), 5, (255,0,0), 2)
             cv_image1=cv2.circle(cv_image1,(int(x2d),int(y2d)), 5, (255,0,0), 2)
+<<<<<<< HEAD
 
             # Add debuggin to see video feedback of velocity on image
             cv_image1=cv2.putText(cv_image1, str(self.depthold), (25,25), cv2.FONT_HERSHEY_SIMPLEX, 1, (255,100,100), 1)
             # End of Debugging part
+=======
+            #back
+            cv_image1=cv2.circle(cv_image1,(int(x1b),int(y1b)), 5, (0,100,0), 2)
+            cv_image1=cv2.circle(cv_image1,(int(x2b),int(y2b)), 5, (0,100,0), 2)
+            cv_image1=cv2.circle(cv_image1,(int(x1db),int(y1db)), 5, (100,0,0), 2)
+            cv_image1=cv2.circle(cv_image1,(int(x2db),int(y2db)), 5, (100,0,0), 2)
+>>>>>>> dynamic_logic
 
             image_msg_out = self.bridge.cv2_to_imgmsg(cv_image1, "bgr8")
             self.pub_circlepattern_image.publish(image_msg_out)
