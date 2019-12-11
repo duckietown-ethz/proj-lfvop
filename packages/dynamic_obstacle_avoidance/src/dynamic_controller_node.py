@@ -31,16 +31,15 @@ class Dynamic_Controller(DTROS):
         self.stepsize = 4
         self.transition_time = 4.0 #sec
         self.lanewidth = 0.22 #0.2175
+        self.leftlane_time = 3;
 
         self.max_vel = 7 #in m/s?? todo
         self.stop = False
         self.stop_prev = False
         self.overtaking = False
 
-        self.duckie_state=False
         self.head_state = False
         self.back_state = False
-        self.duckie_pose = 0
         self.head_veh_pose = 0
         self.head_veh_vel = 0
         self.back_veh_pose = 0
@@ -130,6 +129,10 @@ class Dynamic_Controller(DTROS):
                         if (self.back_veh_pose > 0.15 and self.back_veh_pose < 0.7) or (self.duckie_right_pose > 0.15 and self.duckie_right_pose < 1): #and if on the street before me, look at self.back[1]ge"
                             rospy.loginfo("[%s] backbot or duckie_right close enough for overtaking" % self.node_name)
                             self.rel_vel = 0.1  # todo!!!!!!!!!!!!!!!!
+                            if self.back_state: #stay longer on the left lane if overtaking a duckiebot (which we assume is moving)
+                                self.leftlane_time = 4;
+                            elif self.duckie_right_state:
+                                self.leftlane_time = 2;
                             self.overtake()
 
                 if (self.back_veh_pose < 0.15 and self.back_state) or (self.duckie_right_pose < 0.15 and self.duckie_right_state):
@@ -150,7 +153,7 @@ class Dynamic_Controller(DTROS):
 
         self.gain = self.gain_overtaking    #accelerate
         t_start = rospy.get_rostime().secs
-        while (t_start + 4) > rospy.get_rostime().secs:
+        while (t_start + self.leftlane_time) > rospy.get_rostime().secs:
             if self.head_state or self.duckie_left_state: #stop if vehicle or duckie are facing us on left lane
                 rospy.logerr("[%s] Emergency stop while overtaking!" % self.node_name)
                 self.stop = True
@@ -178,12 +181,7 @@ class Dynamic_Controller(DTROS):
             self.overwatch()
             # rospy.set_param("/%s/lane_controller_node/d_offset" %self.veh_name, self.d_offset)
             # rospy.set_param("/%s/kinematics_node/gain" %self.veh_name, self.gain)
-            # if self.stop:
-            #     self.gain = 0
-            # else:
-            #     self.gain = self.gain_calib
 
-            # print self.stop
             rate.sleep()
 
 if __name__ == '__main__':
