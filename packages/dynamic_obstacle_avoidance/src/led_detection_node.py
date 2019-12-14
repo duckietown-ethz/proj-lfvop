@@ -79,8 +79,9 @@ class LEDDetectionNode(object):
         self.active = switch_msg.data
 
     def undistort(self, keypoints):
-        #undistort radially
-        #section initUndistortRectifyMap from https://docs.opencv.org/2.4/modules/imgproc/doc/geometric_transformations.html
+        #undistort specific points radially
+        #similar to section initUndistortRectifyMap from https://docs.opencv.org/2.4/modules/imgproc/doc/geometric_transformations.html
+        #here the function is made to use on single points and not undistort the entire image as it is not necessary and much faster
         for key in keypoints:
             k1=self.radialparam[0][0]
             k2=self.radialparam[0][1]
@@ -129,16 +130,17 @@ class LEDDetectionNode(object):
         start = rospy.Time.now()
 
 
-
+        #crop top and buttom image as the leds can not be here
         cv_image_color = cv_image_color[cv_image_color.shape[0]/4:cv_image_color.shape[0]/4*3]
 
+        #to greyscale
         cv_image1 = cv2.cvtColor(cv_image_color, cv2.COLOR_BGR2GRAY)
         #cv_image1 = cv_image1[cv_image1.shape[0]/4:cv_image1.shape[0]/4*3]
 
-
+        #binary image based on high thresshold to get bright parts (bright LEDs etc.)
         ret,cv_image = cv2.threshold(cv_image1,220,255,cv2.THRESH_BINARY)
 
-        # Set up the detector with default parameters.
+        # Set up the blob detector 
         params = cv2.SimpleBlobDetector_Params()
         params.minThreshold = 10;    # the graylevel of images
         params.maxThreshold = 200;
@@ -152,21 +154,20 @@ class LEDDetectionNode(object):
         params.filterByInertia = False
         params.filterByConvexity = False
         params.filterByCircularity = True
-        params.minCircularity = 0.7
+        params.minCircularity = 0.7 #leds are close to circular 1
         detector = cv2.SimpleBlobDetector_create(params)
 
         # Detect blobs.
         keypoints = detector.detect(cv_image)
 
-        #undistort radially the points
+        #make copy for radial undistortion
         self.cv_image=cv_image
         keyin=self.features_deepcopy(keypoints)
-
+        #undistort radially the points
         keypoints_un=self.undistort(keyin)
 
 
-
-        #print(keypoints[0].pt)
+        #values for led positions, d indicate distorted positions(used to plot on distorted image), no d is for the undistorted points(used in calculation). b indicate red led and no b white led
         x1=0
         x2=0
         y1=0
@@ -186,42 +187,48 @@ class LEDDetectionNode(object):
 
         redfound=0
         whitefound=0
-        for i,key1 in enumerate(keypoints_un):
-            for j,key2 in enumerate(keypoints_un):
+        #Trye to find the two keypoints that are the 2 LEDs
+        for i,key1 in enumerate(keypoints_un): #for all keypoints
+            for j,key2 in enumerate(keypoints_un): #compare with all other keypoints
                 if key1!=key2:
-                    if abs((key1.size-key2.size)/key1.size)<0.4: #same size keys maybe change parameter
-                        if abs((key1.pt[1]-key2.pt[1]))<key1.size/1: #same y coordinate maybe change parameter
-                            dist=abs((key1.pt[0]-key2.pt[0]))
+                    if abs((key1.size-key2.size)/key1.size)<0.4: #rougly same size keys
+                        if abs((key1.pt[1]-key2.pt[1]))<key1.size/1: #rougly same y coordinate 
+                            #dist=abs((key1.pt[0]-key2.pt[0]))
                             #print(dist/key1.size)
                             #print(key1.size*4+key1.size)
-                            dist_est=0.12*key1.size/0.01
+                            #dist_est=0.12*key1.size/0.01
                             #if dist>dist_est*0.4 and dist <dist_est*1.8: #roughly right distance compared to light size
 
-
+                            #get color fo the keypoints center
                             pixel1= cv_image_color[int(keypoints[i].pt[1]), int(keypoints[i].pt[0])]
                             pixel2= cv_image_color[int(keypoints[j].pt[1]), int(keypoints[j].pt[0])]
-
                             blue1=pixel1[0]
                             blue2=pixel2[0]
                             #print("blue value: "+str(blue1))
                             #print(dist/key1.size)
-                            bluethreshold=225
+                            #Both red and white LEDs completely saturate the red and green channel. 
+                            bluethreshold=225 #For the blue channel the threshold between white and red was found with experiments
+
                             #check if the blue value of the led light is matching the red back or the white front
                             if (blue1<bluethreshold and blue2<bluethreshold): #red
+                                #save undistorted positions
                                 x1b=key1.pt[0]
                                 x2b=key2.pt[0]
                                 y1b=key1.pt[1]
                                 y2b=key2.pt[1]
+                                #save distorted positions
                                 x1db=keypoints[i].pt[0]
                                 x2db=keypoints[j].pt[0]
                                 y1db=keypoints[i].pt[1]
                                 y2db=keypoints[j].pt[1]
                                 redfound=1
                             if  (blue1>=bluethreshold and blue2>=bluethreshold): #white
+                                #save undistorted positions
                                 x1=key1.pt[0]
                                 x2=key2.pt[0]
                                 y1=key1.pt[1]
                                 y2=key2.pt[1]
+                                #save distorted positions
                                 x1d=keypoints[i].pt[0]
                                 x2d=keypoints[j].pt[0]
                                 y1d=keypoints[i].pt[1]
@@ -236,17 +243,18 @@ class LEDDetectionNode(object):
         detected_duckiebot_front_state.data = 0
 
         if whitefound==1:
-            #fn = dtu.get_duckiefleet_root() + "/calibrations/camera_extrinsic/" + self.veh_name + ".yaml"
-            #f=318 #figure out how to get focal length of robot calibration
-
+            #calculate depth of LED position based on them beeing 0.12 m apart, focal length and pixel distance
             depth=0.12*self.fy/abs(x2-x1)
             #print("Depth: " +str(depth))
             imheight, imwidth = cv_image.shape[:2]
+            #offset from center axis
             midt=(x1+x2)/2-imwidth/2
+            #convert to real distance again
             Midt=midt/self.fx*depth
             #print(Midt)
             #self.detected_log.append((Midt,depth))
             t=rospy.get_rostime().to_sec()
+            #calculate the velocity of the points, very sensitive to noise between frames and thus not used further currently
             vMidt=(Midt-self.Midtold)/(t-self.time)
             vdepth=(depth-self.depthold)/(t-self.time)
 
@@ -259,9 +267,8 @@ class LEDDetectionNode(object):
             detected_duckiebot_front_state.data=1
 
         elif redfound==1:
-            #fn = dtu.get_duckiefleet_root() + "/calibrations/camera_extrinsic/" + self.veh_name + ".yaml"
-            #f=318 #figure out how to get focal length of robot calibration
-
+            
+            #same as for the white case
             depth=0.12*self.fy/abs(x2b-x1b)
             #print("Depth: " +str(depth))
             imheight, imwidth = cv_image.shape[:2]
@@ -281,40 +288,17 @@ class LEDDetectionNode(object):
             self.pub_detected_duckiebot_tail.publish(data_to_send)
             detected_duckiebot_tail_state.data=1
 
-        # else:
-        #     print("no car found")
 
-        # print(corners)
 
 
         self.pub_detected_duckiebot_tail_state.publish(detected_duckiebot_tail_state)
         self.pub_detected_duckiebot_front_state.publish(detected_duckiebot_front_state)
-        #if carfound:
-
-        #     # print(corners)
-        #     points_list = []
-        #     for point in corners:
-        #         corner = Point32()
-        #         # print(point[0])
-        #         corner.x = point[0, 0]
-        #         # print(point[0,1])
-        #         corner.y = point[0, 1]
-        #         corner.z = 0
-        #         points_list.append(corner)
-        #     vehicle_corners_msg_out.header.stamp = rospy.Time.now()
-        #     vehicle_corners_msg_out.corners = points_list
-        #     vehicle_corners_msg_out.detection.data = detection
-        #     vehicle_corners_msg_out.H = self.circlepattern_dims[1]
-        #     vehicle_corners_msg_out.W = self.circlepattern_dims[0]
-        #     self.pub_corners.publish(vehicle_corners_msg_out)
+       
         elapsed_time = (rospy.Time.now() - start).to_sec()
         self.pub_time_elapsed.publish(elapsed_time)
 
         if self.publish_circles:
-            # cv2.drawChessboardCorners(image_cv,
-            #                             self.circlepattern_dims, corners, detection)
-                    # Draw detected blobs as red circles.
-        # cv2.DRAW_MATCHES_FLAGS_DRAW_RICH_KEYPOINTS ensures the size of the circle corresponds to the size of blob
+            #publish debuggin images
             cv_image = cv2.drawKeypoints(cv_image, keypoints, np.array([]), (0,0,255), cv2.DRAW_MATCHES_FLAGS_DRAW_RICH_KEYPOINTS)
             cv_image1 = cv2.drawKeypoints(cv_image, keypoints, np.array([]), (0,0,255), cv2.DRAW_MATCHES_FLAGS_DRAW_RICH_KEYPOINTS)
 
