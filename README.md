@@ -1,5 +1,7 @@
 # Demo - Dynamic Obstacle Avoidance
 
+![test_image](https://bit.ly/35vWEeI)
+
 This is a description of the Dynamic Obstacle Avoidance demo, proj-lf-vop 2019.
 
 <div class='requirements' markdown="1">
