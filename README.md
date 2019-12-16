@@ -1,6 +1,6 @@
 # Demo - Dynamic Obstacle Avoidance
 
-![test_image](https://bit.ly/35vWEeI)
+![Static Duckie](/demo_media/duckie_overtake.gif?raw=true "Overtaking Duckie")
 
 This is a description of the Dynamic Obstacle Avoidance demo, proj-lf-vop 2019.
 
