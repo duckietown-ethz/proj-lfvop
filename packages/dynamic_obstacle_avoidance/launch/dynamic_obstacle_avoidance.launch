@@ -8,8 +8,6 @@
   <remap from="duckie_detection_node/lane_pose" to="lane_filter_node/lane_pose"/>
   <remap from="dynamic_controller_node/fsm_mode" to="fsm_node/mode"/>
 
-
-
   <group ns="$(arg veh)">
     <node pkg="dynamic_obstacle_avoidance" type="dynamic_controller_node.py" name="dynamic_controller_node" output="screen"/>
     <node pkg="dynamic_obstacle_avoidance" type="led_detection_node.py" name="led_detection_node" output="screen"/>

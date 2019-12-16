@@ -12,9 +12,8 @@ import rospkg
 import rospy
 import time
 import yaml
-from duckietown_utils import (logger, get_duckiefleet_root)
-from duckietown_utils.yaml_wrap import (yaml_load_file, load_camera_intrinsics, load_homography)
-
+from duckietown_utils import (logger, get_duckiefleet_root, load_camera_intrinsics, load_homography)
+from duckietown_utils.yaml_wrap import yaml_load_file
 from dynamic_obstacle_avoidance.msg import dynamic_obstacle #custom msg to write detection state and location
 
 
@@ -42,7 +41,7 @@ class DuckieDetectionNode(object):
         self.resolution=np.array([0,0])
         self.resolution[0]=rospy.get_param('/%s/camera_node/res_w' %self.robot_name)
         self.resolution[1]=rospy.get_param('/%s/camera_node/res_h' %self.robot_name)
-        self.intrinsics = load_camera_intrinsics(self.veh_name)
+        self.intrinsics = load_camera_intrinsics(self.robot_name)
         self.H = self.load_homography()
         self.Hinv = np.linalg.inv(self.H)
 
