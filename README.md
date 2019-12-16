@@ -22,14 +22,30 @@ Results: A Duckiebot running our enhanced lane-following while avoiding static a
 
 The final result should look like this.
 
-<h3> Static Obstacle Avoidance </h3>
+<h3> Static Obstacle Avoidance - Duckie</h3>
 
-<!-- Video of Duckiebot overtaking static Duckies -->
-<!-- Video of the Duckiebot overtaking moving Duckiebots -->
+  <div figure-id="fig:lane_following_vid">
+      <figcaption> Duckie avoidance.
+      </figcaption>
+      <dtvideo src='vimeo:334931570'/>
+  </div>
 
-First, we show a video of the expected behavior (if the demo is successful).
+<h3> Static Obstacle Avoidance - Duckiebot </h3>
 
-Make sure the video is compliant with Duckietown, i.e. : the city meets the [appearance specifications](+opmanual_duckietown#dt-ops-appearance-specifications) and the Duckiebots have duckies on board.
+  <div figure-id="fig:lane_following_vid">
+      <figcaption> Duckiebot Avoidance.
+      </figcaption>
+      <dtvideo src='vimeo:334931570'/>
+  </div>
+
+<h3> Dynamic Obstacle Avoidance - Duckiebot </h4>
+
+  <div figure-id="fig:lane_following_vid">
+      <figcaption> Moving Duckiebot Avoidance.
+      </figcaption>
+      <dtvideo src='vimeo:334931570'/>
+  </div>
+
 
 ## Duckietown setup notes {#demo-template-duckietown-setup}
 
