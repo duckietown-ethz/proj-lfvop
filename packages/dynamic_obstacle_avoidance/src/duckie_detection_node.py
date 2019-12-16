@@ -38,9 +38,10 @@ class DuckieDetectionNode(object):
         self.publish_boundingbox=1
         self.lanestrip_width = 0.05#0.024 #half of lanestrip width)(including buffer), to the left and to the right
         self.lane_width = 0.1145#0.1025 #(half of lane + half of strip)
-        self.crop_factor = float(1.0/3)
+        self.crop_factor = 0.3
         self.d = 0.0
         self.phi = 0.0
+        self.duckie_pos_arr_prev = []
 
         #self.rectified_input=1 #change to rectify, antiinstagram!: subscribe to anti_instagram_node/corrected_image/compressed
         self.resolution=np.array([0,0])#np.empty(shape=[0,2])
@@ -50,7 +51,7 @@ class DuckieDetectionNode(object):
         self.H = self.load_homography()
         self.Hinv = np.linalg.inv(self.H)
 
-        self.yellow_low = np.array([25,180,180])
+        self.yellow_low = np.array([25,180,180]) #np.array([25,180,180]) #decrease last value!; without roof: 25,170,160, with 25,170,170
         self.yellow_high = np.array([35,255,255])
 
         rospy.loginfo("[%s] Initialization completed" % (self.node_name))
@@ -61,11 +62,11 @@ class DuckieDetectionNode(object):
         self.sub_switch = rospy.Subscriber("~switch", BoolStamped,
                                            self.cbSwitch, queue_size=1)
 
-        # self.pub_detection = rospy.Publisher("~detected_duckie_state",
-        #                                      BoolStamped, queue_size=1)
-
         self.pub_boundingbox_image = rospy.Publisher("~duckiedetected_image",
                                                        Image, queue_size=1)
+
+        self.pub_mask_image = rospy.Publisher("~duckiedetected_mask",
+                                                      Image, queue_size=1)
         self.pub_time_elapsed = rospy.Publisher("~detection_time",
                                                 Float32, queue_size=1)
 
@@ -109,7 +110,7 @@ class DuckieDetectionNode(object):
 
         start = rospy.Time.now()
         #cv_image = self.rectify_image(cv_image) #does this really help?
-        cv_image_crop = cv_image[cv_image.shape[0]*self.crop_factor:cv_image.shape[0]*3/4][:] #crop upper 1/3 and lower 1/4 of image
+        cv_image_crop = cv_image[int(cv_image.shape[0]*self.crop_factor):int(cv_image.shape[0]*3/4)][:] #crop upper 1/3 and lower 1/4 of image
         hsv_img = cv2.cvtColor(cv_image_crop, cv2.COLOR_BGR2HSV)
 
         mask = cv2.inRange(hsv_img, self.yellow_low, self.yellow_high)
@@ -118,8 +119,10 @@ class DuckieDetectionNode(object):
         duckie_loc_pix = Pixel()
         duckie_msg = dynamic_obstacle()
         duckie_pos_arr = []
+        duckie_pos_arr_new = []
         duckie_state_arr = []
         keypoints=[]
+        prev_detected=[]
         i=0
 
         params = cv2.SimpleBlobDetector_Params()
@@ -128,7 +131,7 @@ class DuckieDetectionNode(object):
         params.blobColor = 255
 
         params.filterByArea = True
-        params.minArea = 50 #50, good
+        params.minArea = 40 #50, good
         params.filterByInertia = True
         params.minInertiaRatio = 0.5 #0.5, good!!
         params.filterByConvexity = False
@@ -142,36 +145,39 @@ class DuckieDetectionNode(object):
         keypoints = detector.detect(mask)
 
         t = cv2.drawKeypoints(cv_image_crop, keypoints, cv_image_crop, color=(0, 0, 255), flags=cv2.DRAW_MATCHES_FLAGS_DRAW_RICH_KEYPOINTS)
+        t = cv2.drawKeypoints(mask, keypoints, mask, color=(0, 0, 255), flags=cv2.DRAW_MATCHES_FLAGS_DRAW_RICH_KEYPOINTS)
         if keypoints:
             duckiefound = True
             for key in keypoints:
                 duckie_loc_pix.u=key.pt[0]
                 duckie_loc_pix.v=key.pt[1]+key.size/2+float(self.resolution[1])*self.crop_factor #to compensate for crop
                 duckie_loc_world = self.pixel2ground(duckie_loc_pix)
-
                 #self.duckie_rel[0] = duckie_loc_world.x/np.cos(self.phi)
                 duckie_side = np.cos(self.phi)*(duckie_loc_world.y+self.d)+np.sin(self.phi)*duckie_loc_world.x
                 # print ("duckie position: ", duckie_loc_world)
                 # print ("duckie side: ", duckie_side)
-                duckie_pos_arr.append([duckie_loc_world.x,duckie_loc_world.y])
-                if abs(duckie_side)<self.lane_width: #right lane
-                    duckie_state_arr.append([1])
-                elif duckie_side>self.lane_width and duckie_side<self.lane_width*3: #left lane
-                    duckie_state_arr.append([2])
-                else:
-                    duckie_state_arr.append([0]) #write zero if no duckie detected
+                duckie_pos_arr_new.append([duckie_loc_world.x,duckie_loc_world.y])
+                # print 'shape pos arr', len(self.duckie_pos_arr_prev)
+                for a in range(len(self.duckie_pos_arr_prev)):
+                    dist = np.sqrt((duckie_loc_world.x-self.duckie_pos_arr_prev[a][0])**2+(duckie_loc_world.y-self.duckie_pos_arr_prev[a][1])**2)
+                    prev_detected.append([dist<0.1])
+                    # print 'dist', dist
+
+                # print 'prev_detected', prev_detected
+                if any(prev_detected):
+                    if abs(duckie_side)<self.lane_width: #right lane
+                        duckie_state_arr.append([1])
+                        duckie_pos_arr.append([duckie_loc_world.x,duckie_loc_world.y])
+                    elif duckie_side>self.lane_width and duckie_side<self.lane_width*3: #left lane
+                        duckie_state_arr.append([2])
+                        duckie_pos_arr.append([duckie_loc_world.x,duckie_loc_world.y])
 
                 i=i+1
-        else:
+
+        self.duckie_pos_arr_prev = duckie_pos_arr_new
+
+        if not duckie_state_arr:
             duckie_state_arr.append([0]) #write zero if no duckie detected
-
-        #print duckie_locations
-        # duckie_detected_msg_out.data = duckiefound
-        # self.pub_detection.publish(duckie_detected_msg_out)
-        # if duckiefound:
-            # duckie_locations_msg_out.data = np.array(duckie_locations).ravel()
-            # self.pub_duckie_locations.publish(duckie_locations_msg_out)
-
         duckie_msg.pos=np.array(duckie_pos_arr).ravel()
         duckie_msg.state=np.array(duckie_state_arr).ravel()
         duckie_msg.vel=np.array([])
@@ -183,7 +189,9 @@ class DuckieDetectionNode(object):
         self.pub_time_elapsed.publish(elapsed_time)
         if self.publish_boundingbox:
             image_msg_out = self.bridge.cv2_to_imgmsg(cv_image_crop,"bgr8") #cv_image_crop, "bgr8"
+            image_mask_msg_out = self.bridge.cv2_to_imgmsg(mask,"passthrough")
             self.pub_boundingbox_image.publish(image_msg_out)
+            self.pub_mask_image.publish(image_mask_msg_out)
 
     def cbLanePose(self,lane_pose_msg):
         self.d = lane_pose_msg.d

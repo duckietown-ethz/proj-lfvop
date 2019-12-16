@@ -1,0 +1,62 @@
+description: |
+    Note: there is some very funny business inside. It appears that `k_d` and `k_theta` are switched around.
+
+parameters:
+    v_bar:
+        type: float
+        desc: Nominal linear velocity (m/s).
+
+    k_theta:
+        type: float
+        desc: Proportional gain for $\theta$.
+
+    k_d:
+        type: float
+        desc: Propertional gain for $d$.
+
+    d_thres:
+        type: float
+        desc: Cap for error in $d$.
+
+    theta_thres:
+        type: float
+        desc: Maximum desired $\theta$.
+
+    d_offset:
+        type: float
+        desc: A configurable offset from the lane position.
+
+
+publishers:
+    car_cmd:
+        topic: ~car_cmd
+        type: duckietown_msgs/Twist2DStamped
+        queue_size: 1
+
+subscriptions:
+    lane_reading:
+        topic: ~lane_pose
+        type: duckietown_msgs/LanePose
+        queue_size: 1
+    lane_reading_intersection_navigation:
+        topic: ~lane_pose_intersection_navigation
+        type: duckietown_msgs/LanePose
+        queue_size: 1
+    lane_reading_obstacle_avoidance:
+        topic: ~lane_pose_obstacle_avoidance
+        type: duckietown_msgs/LanePose
+        queue_size: 1
+    lane_reading_parking:
+        topic: ~lane_pose_parking
+        type: duckietown_msgs/LanePose
+        queue_size: 1
+    velocity_command:
+        topic: ~implicit_coordination_velocity
+        type: duckietown_msgs/LanePose
+        queue_size: 1
+    fsm_mode:
+        topic: ~mode
+        type: duckietown_msgs/FSMState
+        queue_size: 1
+
+contracts: {}
