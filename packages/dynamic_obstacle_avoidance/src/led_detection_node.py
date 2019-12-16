@@ -111,7 +111,7 @@ class LEDDetectionNode(object):
 
 
     def processImage(self, image_msg):
-
+       
         if not self.active:
             return
 
@@ -159,7 +159,6 @@ class LEDDetectionNode(object):
 
         # Detect blobs.
         keypoints = detector.detect(cv_image)
-
         #make copy for radial undistortion
         self.cv_image=cv_image
         keyin=self.features_deepcopy(keypoints)
@@ -168,7 +167,7 @@ class LEDDetectionNode(object):
 
 
         #values for led positions, d indicate distorted positions(used to plot on distorted image), no d is for the undistorted points(used in calculation). b indicate red led and no b white led
-        x1=x2=y1=y2=x1d=x2s=y1d=y2d=x1b=x2b=y1b=y2b=x1db=x2db=y1db=y2db=0 
+        x1=x2=y1=y2=x1d=x2d=y1d=y2d=x1b=x2b=y1b=y2b=x1db=x2db=y1db=y2db=0 
 
         redfound=0
         whitefound=0
@@ -287,6 +286,8 @@ class LEDDetectionNode(object):
 
             image_msg_out = self.bridge.cv2_to_imgmsg(cv_image1, "bgr8")
             self.pub_circlepattern_image.publish(image_msg_out)
+
+      
 
 
 
