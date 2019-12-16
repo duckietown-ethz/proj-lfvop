@@ -1,29 +1,31 @@
-# Demo template {#demo-template status=ready}
+# Demo - Dynamic Obstacle Avoidance
 
-Before starting, you should have a look at some tips on [how to write beautiful Duckiebook pages](+duckumentation#contribute).
-
-This is the template for the description of a demo. The spirit of this document is to be an operation manual, i.e., a straightforward, unambiguous recipe for reproducing the results of a specific behavior or set of behaviors.
-
-It starts with the "knowledge box" that provides a crisp description of the border conditions needed:
-
-* Duckiebot hardware configuration (see [Duckiebot configurations](+opmanual_duckiebot#duckiebot-configurations))
-* Duckietown hardware configuration (loops, intersections, robotarium, etc.)
-* Number of Duckiebots
-* Duckiebot setup steps
-
-For example:
+This is a description of the Dynamic Obstacle Avoidance demo, proj-lf-vop 2019.
 
 <div class='requirements' markdown="1">
 
 Requires: Duckiebot in configuration `DB18`
 
-Requires: Duckietown without intersections
+Requires: Duckietown as a single straight lane loop
 
 Requires: Camera calibration completed
+
+Requires: [Joystick control](#rc-control)
+
+Requires: At least two Duckiebots
+
+Results: A Duckiebot running our enhanced lane-following while avoiding static and dynamic obstacles!
 
 </div>
 
 ## Video of expected results {#demo-template-expected}
+
+The final result should look like this.
+
+<h3> Static Obstacle Avoidance </h3>
+
+<!-- Video of Duckiebot overtaking static Duckies -->
+<!-- Video of the Duckiebot overtaking moving Duckiebots -->
 
 First, we show a video of the expected behavior (if the demo is successful).
 
