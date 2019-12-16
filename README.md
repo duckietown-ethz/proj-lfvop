@@ -1,12 +1,13 @@
 # Demo - Dynamic Obstacle Avoidance
 
+This is a description of the Dynamic Obstacle Avoidance demo, proj-lf-vop 2019.
+
 ![Static Duckie](/demo_media/duckie_overtake.gif?raw=true "Overtaking Duckie")
 
-This is a description of the Dynamic Obstacle Avoidance demo, proj-lf-vop 2019.
 
 <div class='requirements' markdown="1">
 
-Requires: Duckiebot in configuration `DB18`
+ ![#f03c15](https://placehold.it/15/f03c15/000000?text=+) `#f03c15`Requires: Duckiebot in configuration `DB18`
 
 Requires: Duckietown as a single straight lane loop
 
