@@ -1,24 +1,13 @@
 # Demo - Dynamic Obstacle Avoidance
 
 This is a description of the Dynamic Obstacle Avoidance demo, proj-lf-vop 2019.
-
-![Static Duckie](/demo_media/duckie_overtake.gif?raw=true "Overtaking Duckie")
-
-
 <div class='requirements' markdown="1">
-
- ![#f03c15](https://placehold.it/15/f03c15/000000?text=+) `#f03c15`Requires: Duckiebot in configuration `DB18`
-
-Requires: Duckietown as a single straight lane loop
-
-Requires: Camera calibration completed
-
-Requires: [Joystick control](#rc-control)
-
-Requires: At least two Duckiebots
-
-Results: A Duckiebot running our enhanced lane-following while avoiding static and dynamic obstacles!
-
+ ![#f03c15](https://placehold.it/15/f03c15/000000?text=+) Requires: Duckiebot in configuration `DB18`
+ ![#f03c15](https://placehold.it/15/f03c15/000000?text=+) Requires: Camera calibration completed
+ ![#f03c15](https://placehold.it/15/f03c15/000000?text=+) Requires: Duckietown as a single straight lane loop
+ ![#f03c15](https://placehold.it/15/f03c15/000000?text=+) Requires: [Joystick control](#rc-control)
+ ![#f03c15](https://placehold.it/15/f03c15/000000?text=+) Requires: At least two Duckiebots
+ ![#c5f015](https://placehold.it/15/c5f015/000000?text=+) Results: A Duckiebot running our enhanced lane-following while avoiding static and dynamic obstacles!
 </div>
 
 ## Video of expected results {#demo-template-expected}
@@ -27,11 +16,10 @@ The final result should look like this.
 
 <h3> Static Obstacle Avoidance - Duckie</h3>
 
-  <div figure-id="fig:lane_following_vid">
-      <figcaption> Duckie avoidance.
-      </figcaption>
-      <dtvideo src='vimeo:334931570'/>
-  </div>
+
+<p align="center">
+![Static Duckie](/demo_media/duckie_overtake.gif?raw=true "Overtaking Duckie")
+</p>
 
 <h3> Static Obstacle Avoidance - Duckiebot </h3>
 
