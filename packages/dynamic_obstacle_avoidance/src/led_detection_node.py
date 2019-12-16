@@ -183,7 +183,7 @@ class LEDDetectionNode(object):
                             blue1=pixel1[0]
                             blue2=pixel2[0]
                             #Both red and white LEDs completely saturate the red and green channel. 
-                            bluethreshold=225 #For the blue channel the threshold between white and red was found with experiments
+                            bluethreshold=235 #For the blue channel the threshold between white and red was found with experiments
 
                             #check if the blue value of the led light is matching the red back or the white front
                             if (blue1<bluethreshold and blue2<bluethreshold): #red
