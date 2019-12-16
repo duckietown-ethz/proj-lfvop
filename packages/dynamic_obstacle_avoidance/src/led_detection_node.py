@@ -1,9 +1,7 @@
 #!/usr/bin/env python
 from copy import deepcopy
 from cv_bridge import CvBridge, CvBridgeError
-from duckietown_msgs.msg import BoolStamped, VehicleCorners
-from geometry_msgs.msg import Point32
-from mutex import mutex
+from duckietown_msgs.msg import BoolStamped
 from sensor_msgs.msg import CompressedImage, Image
 from std_msgs.msg import Float32, Float64MultiArray
 import cv2
@@ -11,7 +9,6 @@ import numpy as np
 import os
 import rospkg
 import rospy
-import threading
 import time
 import yaml
 import copy
@@ -28,12 +25,11 @@ class LEDDetectionNode(object):
         self.publish_freq = self.setupParam("~publish_freq", 2.0)
         self.publish_duration = rospy.Duration.from_sec(1.0/self.publish_freq)
         self.last_stamp = rospy.Time.now()
-        self.frontorback="back" 
+        self.frontorback="back"
         rospack = rospkg.RosPack()
 
         self.publish_circles = True
 
-        self.lock = mutex()
         self.sub_image = rospy.Subscriber("~image", CompressedImage,
                                           self.processImage, buff_size=921600,
                                           queue_size=1)
@@ -66,7 +62,6 @@ class LEDDetectionNode(object):
         self.deptholdb=0
         self.time = rospy.get_rostime().to_sec()
         self.timeb = rospy.get_rostime().to_sec()
-
 
     def setupParam(self, param_name, default_value):
         value = rospy.get_param(param_name, default_value)
@@ -108,8 +103,6 @@ class LEDDetectionNode(object):
                 _response = k.response, _octave = k.octave,
                 _class_id = k.class_id) for k in f]
 
-
-
     def processImage(self, image_msg):
 
         if not self.active:
@@ -140,7 +133,7 @@ class LEDDetectionNode(object):
         #binary image based on high thresshold to get bright parts (bright LEDs etc.)
         ret,cv_image = cv2.threshold(cv_image1,220,255,cv2.THRESH_BINARY)
 
-        # Set up the blob detector 
+        # Set up the blob detector
         params = cv2.SimpleBlobDetector_Params()
         params.minThreshold = 10;    # the graylevel of images
         params.maxThreshold = 200;
@@ -168,7 +161,7 @@ class LEDDetectionNode(object):
 
 
         #values for led positions, d indicate distorted positions(used to plot on distorted image), no d is for the undistorted points(used in calculation). b indicate red led and no b white led
-        x1=x2=y1=y2=x1d=x2s=y1d=y2d=x1b=x2b=y1b=y2b=x1db=x2db=y1db=y2db=0 
+        x1=x2=y1=y2=x1d=x2s=y1d=y2d=x1b=x2b=y1b=y2b=x1db=x2db=y1db=y2db=0
 
         redfound=0
         whitefound=0
@@ -177,13 +170,13 @@ class LEDDetectionNode(object):
             for j,key2 in enumerate(keypoints_un): #compare with all other keypoints
                 if key1!=key2:
                     if abs((key1.size-key2.size)/key1.size)<0.4: #rougly same size keys
-                        if abs((key1.pt[1]-key2.pt[1]))<key1.size/1: #rougly same y coordinate 
+                        if abs((key1.pt[1]-key2.pt[1]))<key1.size/1: #rougly same y coordinate
                             #get color fo the keypoints center
                             pixel1= cv_image_color[int(keypoints[i].pt[1]), int(keypoints[i].pt[0])]
                             pixel2= cv_image_color[int(keypoints[j].pt[1]), int(keypoints[j].pt[0])]
                             blue1=pixel1[0]
                             blue2=pixel2[0]
-                            #Both red and white LEDs completely saturate the red and green channel. 
+                            #Both red and white LEDs completely saturate the red and green channel.
                             bluethreshold=225 #For the blue channel the threshold between white and red was found with experiments
 
                             #check if the blue value of the led light is matching the red back or the white front
@@ -242,7 +235,7 @@ class LEDDetectionNode(object):
             detected_duckiebot_front_state.data=1
 
         elif redfound==1:
-            
+
             #same as for the white case
             depth=0.12*self.fy/abs(x2b-x1b)
             imheight, imwidth = cv_image.shape[:2]
@@ -256,16 +249,14 @@ class LEDDetectionNode(object):
             self.Midtoldb=Midt
             self.deptholdb=depth
             data_to_send = Float64MultiArray()  # the data to be sent, initialise the array
-            data_to_send.data = [depth,-Midt,vdepth,-vMidt] #pos x,y vel x,y, check minus!!
+            data_to_send.data = [depth,-Midt,vdepth,-vMidt] #pos x,y vel x,y
             self.pub_detected_duckiebot_tail.publish(data_to_send)
             detected_duckiebot_tail_state.data=1
 
-
-
-
+        #publish state messages
         self.pub_detected_duckiebot_tail_state.publish(detected_duckiebot_tail_state)
         self.pub_detected_duckiebot_front_state.publish(detected_duckiebot_front_state)
-       
+
         elapsed_time = (rospy.Time.now() - start).to_sec()
         self.pub_time_elapsed.publish(elapsed_time)
 
@@ -287,8 +278,6 @@ class LEDDetectionNode(object):
 
             image_msg_out = self.bridge.cv2_to_imgmsg(cv_image1, "bgr8")
             self.pub_circlepattern_image.publish(image_msg_out)
-
-
 
 if __name__ == '__main__':
     rospy.init_node('led_detection', anonymous=False)

@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-
 import os
 import rospy
 import numpy as np
@@ -18,7 +17,6 @@ class Dynamic_Controller(DTROS):
     def __init__(self, node_name):
         # initialize the DTROS parent class
         super(Dynamic_Controller, self).__init__(node_name=node_name)
-
         self.veh_name = rospy.get_namespace().strip("/")
 
         # changing LED to two white in the front and two red in the back
@@ -28,10 +26,10 @@ class Dynamic_Controller(DTROS):
         pattern.frequency = 0.0
         self.set_led_pattern(pattern)
 
-        self.stepsize = 4
-        self.transition_time = 4.0 #sec
-        self.lanewidth = 0.22 #0.2175
-        self.leftlane_time = 3;
+        self.nr_steps = 4 #nr of steps to split the d_offset during transition from one lane to another
+        self.transition_time = 4.0 #sec, time for transition from one lane to another
+        self.lanewidth = 0.22 #m, width of one lane
+        self.leftlane_time = 3;#sec, time spent on left lane during overtaking
 
         self.max_vel = 7 #in m/s?? todo
         self.stop = False
@@ -145,30 +143,36 @@ class Dynamic_Controller(DTROS):
         self.overtaking = True
         rospy.loginfo("[%s] overtaking now, going to the left lane!" % self.node_name)
 
-        for i in range(1,self.stepsize+1):
-            self.d_offset = math.sin(i*math.pi/(self.stepsize*2)) * self.lanewidth
-            #self.d_offset += self.lanewidth/float(self.stepsize) #write
+        for i in range(1,self.nr_steps+1):
+            self.d_offset = math.sin(i*math.pi/(self.nr_steps*2)) * self.lanewidth
+            #self.d_offset += self.lanewidth/float(self.nr_steps) #write
             rospy.set_param("/%s/lane_controller_node/d_offset" %self.veh_name, self.d_offset)
-            rospy.sleep(self.transition_time/float(self.stepsize))
+            rospy.sleep(self.transition_time/float(self.nr_steps))
 
         self.gain = self.gain_overtaking    #accelerate
         t_start = rospy.get_rostime().secs
         while (t_start + self.leftlane_time) > rospy.get_rostime().secs:
             if self.head_state or self.duckie_left_state: #stop if vehicle or duckie are facing us on left lane
                 rospy.logerr("[%s] Emergency stop while overtaking!" % self.node_name)
+                self.stop_prev = True
                 self.stop = True
-                while self.head_state or self.duckie_left_state:
+                while self.stop_prev or self.stop:
+                    if self.head_state or self.duckie_left_state:
+                        self.stop = True
+                    else:
+                        self.stop = False
                     rospy.sleep(0.5)
-                self.stop = False #as soon as left lane is free again, we exit stop and continue driving on left lane
+
+             #as soon as left lane is free again, we exit stop and continue driving on left lane
             rospy.sleep(0.1)                     #time on left lane, make dependend on self.rel_vel
         self.gain = self.gain_calib         #decelerate
         rospy.loginfo("[%s] going back to the right lane" % self.node_name)
 
-        for i in range(1,self.stepsize+1):
-            self.d_offset = (1 - math.sin(i*math.pi/(self.stepsize*2)) )* self.lanewidth
-            #self.d_offset -= self.lanewidth/float(self.stepsize) #write
+        for i in range(1,self.nr_steps+1):
+            self.d_offset = (1 - math.sin(i*math.pi/(self.nr_steps*2)) )* self.lanewidth
+            #self.d_offset -= self.lanewidth/float(self.nr_steps) #write
             rospy.set_param("/%s/lane_controller_node/d_offset" %self.veh_name, self.d_offset)
-            rospy.sleep(self.transition_time/float(self.stepsize))
+            rospy.sleep(self.transition_time/float(self.nr_steps))
         self.d_offset = 0.0
 
         rospy.loginfo("[%s] setting d_offset to zero!" % self.node_name)
