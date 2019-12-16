@@ -42,7 +42,7 @@ class DuckieDetectionNode(object):
         self.resolution[0]=rospy.get_param('/%s/camera_node/res_w' %self.robot_name)
         self.resolution[1]=rospy.get_param('/%s/camera_node/res_h' %self.robot_name)
         self.intrinsics = load_camera_intrinsics(self.robot_name)
-        self.H = self.load_homography()
+        self.H = load_homography(self.robot_name)
         self.Hinv = np.linalg.inv(self.H)
 
         #hsv range for yellow duckies
