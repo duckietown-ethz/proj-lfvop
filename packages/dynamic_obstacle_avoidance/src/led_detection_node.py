@@ -28,7 +28,7 @@ class LEDDetectionNode(object):
         self.publish_freq = self.setupParam("~publish_freq", 2.0)
         self.publish_duration = rospy.Duration.from_sec(1.0/self.publish_freq)
         self.last_stamp = rospy.Time.now()
-        self.frontorback="back" #CHANGE TO CHECK BOTH!!#os.environ.get("FRONT_OR_BACK")
+        self.frontorback="back" 
         rospack = rospkg.RosPack()
 
         self.publish_circles = True
@@ -82,7 +82,7 @@ class LEDDetectionNode(object):
         #undistort specific points radially
         #similar to section initUndistortRectifyMap from https://docs.opencv.org/2.4/modules/imgproc/doc/geometric_transformations.html
         #here the function is made to use on single points and not undistort the entire image as it is not necessary and much faster
-        for key in keypoints:
+        for key in keypoints: #for all keypoints of interest
             k1=self.radialparam[0][0]
             k2=self.radialparam[0][1]
             p1=self.radialparam[0][2]
@@ -168,22 +168,7 @@ class LEDDetectionNode(object):
 
 
         #values for led positions, d indicate distorted positions(used to plot on distorted image), no d is for the undistorted points(used in calculation). b indicate red led and no b white led
-        x1=0
-        x2=0
-        y1=0
-        y2=0
-        x1d=0
-        x2d=0
-        y1d=0
-        y2d=0
-        x1b=0
-        x2b=0
-        y1b=0
-        y2b=0
-        x1db=0
-        x2db=0
-        y1db=0
-        y2db=0
+        x1=x2=y1=y2=x1d=x2s=y1d=y2d=x1b=x2b=y1b=y2b=x1db=x2db=y1db=y2db=0 
 
         redfound=0
         whitefound=0
@@ -193,19 +178,11 @@ class LEDDetectionNode(object):
                 if key1!=key2:
                     if abs((key1.size-key2.size)/key1.size)<0.4: #rougly same size keys
                         if abs((key1.pt[1]-key2.pt[1]))<key1.size/1: #rougly same y coordinate 
-                            #dist=abs((key1.pt[0]-key2.pt[0]))
-                            #print(dist/key1.size)
-                            #print(key1.size*4+key1.size)
-                            #dist_est=0.12*key1.size/0.01
-                            #if dist>dist_est*0.4 and dist <dist_est*1.8: #roughly right distance compared to light size
-
                             #get color fo the keypoints center
                             pixel1= cv_image_color[int(keypoints[i].pt[1]), int(keypoints[i].pt[0])]
                             pixel2= cv_image_color[int(keypoints[j].pt[1]), int(keypoints[j].pt[0])]
                             blue1=pixel1[0]
                             blue2=pixel2[0]
-                            #print("blue value: "+str(blue1))
-                            #print(dist/key1.size)
                             #Both red and white LEDs completely saturate the red and green channel. 
                             bluethreshold=225 #For the blue channel the threshold between white and red was found with experiments
 
@@ -245,13 +222,11 @@ class LEDDetectionNode(object):
         if whitefound==1:
             #calculate depth of LED position based on them beeing 0.12 m apart, focal length and pixel distance
             depth=0.12*self.fy/abs(x2-x1)
-            #print("Depth: " +str(depth))
             imheight, imwidth = cv_image.shape[:2]
             #offset from center axis
             midt=(x1+x2)/2-imwidth/2
             #convert to real distance again
             Midt=midt/self.fx*depth
-            #print(Midt)
             #self.detected_log.append((Midt,depth))
             t=rospy.get_rostime().to_sec()
             #calculate the velocity of the points, very sensitive to noise between frames and thus not used further currently
@@ -270,12 +245,9 @@ class LEDDetectionNode(object):
             
             #same as for the white case
             depth=0.12*self.fy/abs(x2b-x1b)
-            #print("Depth: " +str(depth))
             imheight, imwidth = cv_image.shape[:2]
             midt=(x1b+x2b)/2-imwidth/2
             Midt=midt/self.fx*depth
-            #print(Midt)
-            #self.detected_log.append((Midt,depth))
             t=rospy.get_rostime().to_sec()
             vMidt=(Midt-self.Midtoldb)/(t-self.timeb)
             vdepth=(depth-self.deptholdb)/(t-self.timeb)
