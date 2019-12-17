@@ -8,7 +8,7 @@ This is a description of the Dynamic Obstacle Avoidance demo, proj-lf-vop 2019.
 
 ![#f03c15](https://placehold.it/15/f03c15/000000?text=+) Requires: Duckietown as a single straight lane loop
 
-![#f03c15](https://placehold.it/15/f03c15/000000?text=+) Requires: [Joystick control](#rc-control)
+![#f03c15](https://placehold.it/15/f03c15/000000?text=+) Requires: Joystick control
 
 ![#f03c15](https://placehold.it/15/f03c15/000000?text=+) Requires: At least two Duckiebots
 
@@ -22,11 +22,11 @@ The final demo should demonstrate the following three functionalities; avoiding 
 
 <h4 style="text-align:center;"> Static Obstacle Avoidance - Duckie </h4>
 
-![Static Duckie](/demo_media/vid_02.mp4?raw=true "Overtaking Static Duckie")
+![Static Duckie](/demo_media/duckie_overtake.gif?raw=true "Overtaking Static Duckie")
 
 <h4 style="text-align:center;"> Static Obstacle Avoidance - Duckiebot*</h4>
 
-![Static Duckiebot](/demo_media/vid_01.mp4?raw=true "Overtaking Static Duckiebot")
+![Static Duckiebot](/demo_media/static_duckiebot.gif?raw=true "Overtaking Static Duckiebot")
 
 <h4 style="text-align:center;"> Dynamic Obstacle Avoidance - Duckiebot* </h4>
 
@@ -47,7 +47,6 @@ The following assumptions about the Duckietown are made to make this demo work:
 The final Duckietown setup should look like this:
 
 ![DT_lane](/demo_media/demo_lane.png?raw=true "Lane Setup")
-
 
 
 
@@ -120,9 +119,10 @@ On your local machine (with the latest Duckietown shell installed), run the foll
 
    `~LAPTOP $ dts duckiebot keyboard_control [DUCKIEBOT_NAME] --base_image duckietown/dt-core:daffy-amd64`
 
-6. Within the keyboard control, press **a** to start the lane following. Press **s** if you need to stop.
-
-
+6. Within the keyboard control, press a to start the lane following. Press s if you need to stop.
+<div style="width:300px;">
+![keyboard](/demo_media/demo_02.png?raw=true "keyboard")
+</div>
 By now you should have one Duckiebot running the Dynamic Obstacle Avoidance demo. By default, it detects both static and dynamic obstacles. This can be changed by modifying the launch file. For details on this, go to the advanced user section.
 
 Note: Steps 4 and 5 might take several minutes to complete.*
@@ -225,7 +225,7 @@ Resolution: Update to the latest Duckietown Shell and try again.
 
 Do as we ask, otherwise terrible things might happen!
 
-![failure](/demo_media/demo_03.gif?raw=true "failure_demo")
+![failuer](/demo_media/demo_03.gif?raw=true "failuer_demo")
 
 
 ## 8. Additional Information - Code Structure
