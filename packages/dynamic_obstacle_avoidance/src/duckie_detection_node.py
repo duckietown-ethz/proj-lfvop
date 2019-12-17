@@ -173,7 +173,6 @@ class DuckieDetectionNode(object):
         # fill information into the duckie_msg and publish it
         duckie_msg.pos=np.array(duckie_pos_arr).ravel()
         duckie_msg.state=np.array(duckie_state_arr).ravel()
-        duckie_msg.vel=np.array([]) #duckie will always have velocity zero
         duckie_msg.header.stamp = rospy.Time.now()
         self.pub_duckie.publish(duckie_msg)
 

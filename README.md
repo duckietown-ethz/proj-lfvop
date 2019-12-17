@@ -1,53 +1,41 @@
 # Demo - Dynamic Obstacle Avoidance
 
-![test_image](https://bit.ly/35vWEeI)
-
 This is a description of the Dynamic Obstacle Avoidance demo, proj-lf-vop 2019.
 
-<div class='requirements' markdown="1">
+![#f03c15](https://placehold.it/15/f03c15/000000?text=+) Requires: Duckiebot in configuration `DB18`
 
-Requires: Duckiebot in configuration `DB18`
+![#f03c15](https://placehold.it/15/f03c15/000000?text=+) Requires: Camera calibration completed
 
-Requires: Duckietown as a single straight lane loop
+![#f03c15](https://placehold.it/15/f03c15/000000?text=+) Requires: Duckietown as a single straight lane loop
 
-Requires: Camera calibration completed
+![#f03c15](https://placehold.it/15/f03c15/000000?text=+) Requires: [Joystick control](#rc-control)
 
-Requires: [Joystick control](#rc-control)
+![#f03c15](https://placehold.it/15/f03c15/000000?text=+) Requires: At least two Duckiebots
 
-Requires: At least two Duckiebots
+![#c5f015](https://placehold.it/15/c5f015/000000?text=+) Results: A Duckiebot running our enhanced lane-following while avoiding static and dynamic obstacles!
 
-Results: A Duckiebot running our enhanced lane-following while avoiding static and dynamic obstacles!
+***
 
-</div>
+## Video of expected results
 
-## Video of expected results {#demo-template-expected}
+The final demo should demonstrate the following three functionalities; avoiding static Duckies, avoiding static Duckiebots and avoiding moving Duckiebots. The final result should look like this.
 
-The final result should look like this.
+<h4 style="text-align:center;"> Static Obstacle Avoidance - Duckie </h4>
 
-<h3> Static Obstacle Avoidance - Duckie</h3>
+![Static Duckie](/demo_media/duckie_overtake.gif?raw=true "Overtaking Static Duckie")
 
-  <div figure-id="fig:lane_following_vid">
-      <figcaption> Duckie avoidance.
-      </figcaption>
-      <dtvideo src='vimeo:334931570'/>
-  </div>
+<h4 style="text-align:center;"> Static Obstacle Avoidance - Duckiebot*</h4>
 
-<h3> Static Obstacle Avoidance - Duckiebot </h3>
+![Static Duckiebot](/demo_media/static_duckiebot.gif?raw=true "Overtaking Static Duckiebot")
 
-  <div figure-id="fig:lane_following_vid">
-      <figcaption> Duckiebot Avoidance.
-      </figcaption>
-      <dtvideo src='vimeo:334931570'/>
-  </div>
+<h4 style="text-align:center;"> Dynamic Obstacle Avoidance - Duckiebot* </h4>
 
-<h3> Dynamic Obstacle Avoidance - Duckiebot </h4>
+![Dynamic Duckiebot](/demo_media/moving_duckie_avoidance.gif?raw=true "Overtaking Moving Duckiebot")
 
-  <div figure-id="fig:lane_following_vid">
-      <figcaption> Moving Duckiebot Avoidance.
-      </figcaption>
-      <dtvideo src='vimeo:334931570'/>
-  </div>
+*Reference Duckiebots used as obstacles did not include Duckies on top for identification purposes
 
+
+***
 
 ## Duckietown setup notes {#demo-template-duckietown-setup}
 
