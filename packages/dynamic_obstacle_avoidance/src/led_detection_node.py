@@ -67,6 +67,11 @@ class LEDDetectionNode(object):
         self.time = rospy.get_rostime().to_sec()
         self.timeb = rospy.get_rostime().to_sec()
 
+        self.threshold = 235
+        try:
+            self.threshold = os.environ["THRESHOLD"]
+        except:
+            pass
 
     def setupParam(self, param_name, default_value):
         value = rospy.get_param(param_name, default_value)
