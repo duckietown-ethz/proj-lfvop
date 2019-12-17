@@ -50,6 +50,14 @@ class Dynamic_Controller(DTROS):
         self.gain_calib = rospy.get_param("/%s/kinematics_node/gain" %self.veh_name)
         self.gain = self.gain_calib
         self.gain_overtaking = 1.3 * self.gain_calib
+        self.dist_max = 0.7
+        self.static = False
+        try:
+            if os.environ["STATIC"]:
+                self.static = True
+        except:
+            pass
+
         self.fsm_state =  "NORMAL_JOYSTICK_CONTROL"
 
         # construct publisher
@@ -113,11 +121,13 @@ class Dynamic_Controller(DTROS):
         if self.fsm_state == "LANE_FOLLOWING" and not self.overtaking:
             if self.back_state or self.duckie_right_state: # checking for obstacles on right lane (duckiebot or duckie)
                 if not (self.head_state or self.duckie_left_state): # checking for obstacles on left lane (duckiebot or duckie)
-                    if (self.back_veh_pose > 0.15 and self.back_veh_pose < 0.7) or (self.duckie_right_pose > 0.15 and self.duckie_right_pose < 1): # checking if obstacles in overtaking range
-                        if self.back_state: # stay longer on the left lane if overtaking a duckiebot (which we assume is moving)
-                            self.leftlane_time = 4;
-                        elif self.duckie_right_state:
-                            self.leftlane_time = 2;
+                    if self.back_state and not self.static: # stay longer on the left lane if overtaking a duckiebot (which we assume is moving)
+                        self.leftlane_time = 4
+                        self.dist_max = 0.7
+                    else:
+                        self.leftlane_time = 2
+                        self.dist_max = 1.0
+                    if (self.back_veh_pose > 0.15 and self.back_veh_pose < self.dist_max) or (self.duckie_right_pose > 0.15 and self.duckie_right_pose < self.dist_max): # checking if obstacles in overtaking range
                         self.overtake()
 
                 # checking if obstacles to close --> emergency stop

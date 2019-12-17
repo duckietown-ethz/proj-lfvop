@@ -131,16 +131,16 @@ class LEDDetectionNode(object):
 
 
         #crop top and buttom image as the leds can not be here
-        cv_image_color = cv_image_color[cv_image_color.shape[0]/4:cv_image_color.shape[0]/4*3]
+        cv_image_color = cv_image_color[int(cv_image_color.shape[0]*0.3):cv_image_color.shape[0]/4*3]
 
         #to greyscale
         cv_image1 = cv2.cvtColor(cv_image_color, cv2.COLOR_BGR2GRAY)
         #cv_image1 = cv_image1[cv_image1.shape[0]/4:cv_image1.shape[0]/4*3]
 
-        #binary image based on high thresshold to get bright parts (bright LEDs etc.)
+        #binary image based on high threshold to get bright parts (bright LEDs etc.)
         ret,cv_image = cv2.threshold(cv_image1,220,255,cv2.THRESH_BINARY)
 
-        # Set up the blob detector 
+        # Set up the blob detector
         params = cv2.SimpleBlobDetector_Params()
         params.minThreshold = 10;    # the graylevel of images
         params.maxThreshold = 200;
