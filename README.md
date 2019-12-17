@@ -14,16 +14,27 @@ This is a description of the Dynamic Obstacle Avoidance demo, proj-lf-vop 2019.
 
 ![#c5f015](https://placehold.it/15/c5f015/000000?text=+) Results: A Duckiebot running our enhanced lane-following while avoiding static and dynamic obstacles!
 
+***
 
 ## Video of expected results {#demo-template-expected}
 
 The final demo should demonstrate the following three functionalities; avoiding static Duckies, avoiding static Duckiebots and avoiding moving Duckiebots. The final result should look like this.
 
-<h4 style="text-align:center;"> Static Obstacle Avoidance - Duckie
+<h4 style="text-align:center;"> Static Obstacle Avoidance - Duckie)</h4>
 
-![Static Duckie](/demo_media/duckie_overtake.gif?raw=true "Overtaking Duckie")</h4>
+![Static Duckie](/demo_media/duckie_overtake.gif?raw=true "Overtaking Static Duckie"
 
-<h4 style="text-align:center;"> Static Obstacle Avoidance - Duckie</h4>
+<h4 style="text-align:center;"> Static Obstacle Avoidance - Duckiebot*</h4>
+
+![Static Duckiebot](/demo_media/static_duckiebot.gif?raw=true "Overtaking Static Duckiebot"
+
+<h4 style="text-align:center;"> Dynamic Obstacle Avoidance - Duckiebot* </h4>
+
+![Dynamic Duckiebot](/demo_media/moving_duckie_avoidance.gif?raw=true "Overtaking Moving Duckiebot"
+
+*Reference Duckiebots used as obstacles did not include Duckies on top for identification purposes
+
+***
 
 ## Duckietown setup notes {#demo-template-duckietown-setup}
 
