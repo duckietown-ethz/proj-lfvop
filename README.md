@@ -14,9 +14,9 @@ This is a description of the Dynamic Obstacle Avoidance demo, proj-lf-vop 2019.
 
 ![#c5f015](https://placehold.it/15/c5f015/000000?text=+) Results: A Duckiebot running our enhanced lane-following while avoiding static and dynamic obstacles!
 
-***
 
-## Video of expected results {#demo-template-expected}
+
+## Video of expected results
 
 The final demo should demonstrate the following three functionalities; avoiding static Duckies, avoiding static Duckiebots and avoiding moving Duckiebots. The final result should look like this.
 
@@ -34,7 +34,7 @@ The final demo should demonstrate the following three functionalities; avoiding 
 
 *Reference Duckiebots used as obstacles did not include Duckies on top for identification purposes
 
-***
+
 
 ## Duckietown setup notes {#demo-template-duckietown-setup}
 
