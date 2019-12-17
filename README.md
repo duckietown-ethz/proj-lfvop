@@ -56,7 +56,7 @@ Duckiebots should be set up using the standard `DB18` configuration. No addition
 
 ## Pre-flight checklist
 
-TMake sure you have completed the following before proceeding:
+Make sure you have completed the following before proceeding:
 
 Check: Duckiebot in configuration `DB18`
 
@@ -120,9 +120,8 @@ On your local machine (with the latest Duckietown shell installed), run the foll
    `~LAPTOP $ dts duckiebot keyboard_control [DUCKIEBOT_NAME] --base_image duckietown/dt-core:daffy-amd64`
 
 6. Within the keyboard control, press a to start the lane following. Press s if you need to stop.
-<div style="width:300px;">
-![keyboard](/demo_media/demo_02.png?raw=true "keyboard")
-</div>
+
+
 By now you should have one Duckiebot running the Dynamic Obstacle Avoidance demo. By default, it detects both static and dynamic obstacles. This can be changed by modifying the launch file. For details on this, go to the advanced user section.
 
 Note: Steps 4 and 5 might take several minutes to complete.*
@@ -171,7 +170,7 @@ The Dynamic Duckiebot Avoidance demo follows the same steps as Demo #2, with the
 
 Here is a list of advanced functionalities that can be performed for this demo. These are not needed to make the project run, but can provide an additional boost to the overall performance.
 
-### Updating the Lane filter parameters
+### 5.1 Updating the Lane filter parameters
 The lane filter was found to work better after trying different segment threshold parameters, as well as matrix mesh sizes. These can be updated using the following commands:
 
 #### Changing Lane Filter Matrix Mesh Size:
@@ -194,7 +193,7 @@ The lane filter was found to work better after trying different segment threshol
 
 For our demonstration, the following values were used: Matrix mesh size of 0.6 and max segment threshold of 15.  For details on how these were selected, please refer to the official project report.
 
-### Modifying Node Detection Parameters
+### 5.2 Modifying Node Detection Parameters
 By default, the Dynamic Obstacle Avoidance node detects Duckiebots and Duckies in the environment. If the types of obstacles are known, the detection can be optimized by limiting the detection only to those.
 
 In the dynamic_obstacle_avoidance.launch launch file, the project nodes are listed. The only required node is the **dynamic_controller_node**. The *led_detection_node* and the *duckie_detection_node* can be commented out if not desired. This section assumes a advanced knowledge of launch files from the user.
