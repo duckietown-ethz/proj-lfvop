@@ -115,7 +115,7 @@ On your local machine (with the latest Duckietown shell installed), run the foll
 
    `~LAPTOP $ docker -H [DUCKIEBOT_NAME].local run -it --rm --net host -v /data/:/data/ duckietown/proj-lfvop:master-arm32v7`
 
-5. Start the Keyboard control
+5. Open a new terminal and start the Keyboard control
 
    `~LAPTOP $ dts duckiebot keyboard_control [DUCKIEBOT_NAME] --base_image duckietown/dt-core:daffy-amd64`
 
