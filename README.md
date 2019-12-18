@@ -228,3 +228,14 @@ Do as we ask, otherwise terrible things might happen!
 
 
 ## 8. Additional Information - Code Structure
+
+This repository is based on the dt-core image. It uses the master launch file from the duckietown_demos package to launch the lane following. For the line detection and the lane filter, the packages from CRA2 were used since they showed a better lane following performance. The general structure of the code is shown in the figure below.
+
+<figure>
+<img src="/demo_media/code_structure.png" width="400" >
+</figure>
+
+The dynamic_obstacle_avoidance package includes three nodes. The led_detection_node runs the duckiebot detection based on their head and back lights. It publishes two messages for head and back bots separately: the state, which is a boolean indicating if a Duckiebot was detected, and an array with position and velocity of the detected Duckiebots. The duckie_detection_node runs the Duckie detection. It publishes a custom message with state of detected duckie (0: no duckie, 1: Duckie on right lane, 2: Duckie on left lane) and location. 
+
+The dynamic_obstacle_node is responsible for the logic to control the overtaking maneuver. It subscribes to the car_cmd topic and publishes it again. The car_cmd is unchanged, except if an emergency stop is detected and a zero speed setpoint is published to the car. The dynamic_obstacle_node checks if all conditions are given to start the overtaking maneuver and then controls it. The overtaking maneuver is performed while still running the standard lane following. The changing of the lane is implemented by gradually increasing the lane_controller parameter d_offset. As a future extension, the gain parameter could also be adjusted to drive faster during overtaking. However due to instability of lane following when driving too fast, this lines have been commented out in the current version of the code. 
+
