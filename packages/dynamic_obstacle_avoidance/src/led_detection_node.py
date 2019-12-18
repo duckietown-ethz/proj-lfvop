@@ -28,7 +28,7 @@ class LEDDetectionNode(object):
         self.publish_freq = self.setupParam("~publish_freq", 2.0)
         self.publish_duration = rospy.Duration.from_sec(1.0/self.publish_freq)
         self.last_stamp = rospy.Time.now()
-        self.frontorback="back" 
+        self.frontorback="back"
         rospack = rospkg.RosPack()
 
         self.publish_circles = True
@@ -69,7 +69,7 @@ class LEDDetectionNode(object):
 
         self.threshold = 235
         try:
-            self.threshold = os.environ["THRESHOLD"]
+            self.threshold = int(os.environ["THRESHOLD"])
         except:
             pass
 
@@ -116,7 +116,7 @@ class LEDDetectionNode(object):
 
 
     def processImage(self, image_msg):
-       
+
         if not self.active:
             return
 
@@ -172,7 +172,7 @@ class LEDDetectionNode(object):
 
 
         #values for led positions, d indicate distorted positions(used to plot on distorted image), no d is for the undistorted points(used in calculation). b indicate red led and no b white led
-        x1=x2=y1=y2=x1d=x2d=y1d=y2d=x1b=x2b=y1b=y2b=x1db=x2db=y1db=y2db=0 
+        x1=x2=y1=y2=x1d=x2d=y1d=y2d=x1b=x2b=y1b=y2b=x1db=x2db=y1db=y2db=0
 
         redfound=0
         whitefound=0
@@ -181,13 +181,13 @@ class LEDDetectionNode(object):
             for j,key2 in enumerate(keypoints_un): #compare with all other keypoints
                 if key1!=key2:
                     if abs((key1.size-key2.size)/key1.size)<0.4: #rougly same size keys
-                        if abs((key1.pt[1]-key2.pt[1]))<key1.size/1: #rougly same y coordinate 
+                        if abs((key1.pt[1]-key2.pt[1]))<key1.size/1: #rougly same y coordinate
                             #get color fo the keypoints center
                             pixel1= cv_image_color[int(keypoints[i].pt[1]), int(keypoints[i].pt[0])]
                             pixel2= cv_image_color[int(keypoints[j].pt[1]), int(keypoints[j].pt[0])]
                             blue1=pixel1[0]
                             blue2=pixel2[0]
-                            #Both red and white LEDs completely saturate the red and green channel. 
+                            #Both red and white LEDs completely saturate the red and green channel.
                             bluethreshold=235 #For the blue channel the threshold between white and red was found with experiments
 
                             #check if the blue value of the led light is matching the red back or the white front
@@ -246,7 +246,7 @@ class LEDDetectionNode(object):
             detected_duckiebot_front_state.data=1
 
         elif redfound==1:
-            
+
             #same as for the white case
             depth=0.12*self.fy/abs(x2b-x1b)
             imheight, imwidth = cv_image.shape[:2]
@@ -269,7 +269,7 @@ class LEDDetectionNode(object):
 
         self.pub_detected_duckiebot_tail_state.publish(detected_duckiebot_tail_state)
         self.pub_detected_duckiebot_front_state.publish(detected_duckiebot_front_state)
-       
+
         elapsed_time = (rospy.Time.now() - start).to_sec()
         self.pub_time_elapsed.publish(elapsed_time)
 
@@ -292,7 +292,7 @@ class LEDDetectionNode(object):
             image_msg_out = self.bridge.cv2_to_imgmsg(cv_image1, "bgr8")
             self.pub_circlepattern_image.publish(image_msg_out)
 
-      
+
 
 
 

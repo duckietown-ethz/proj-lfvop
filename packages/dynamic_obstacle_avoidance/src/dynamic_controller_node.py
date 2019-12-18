@@ -51,10 +51,10 @@ class Dynamic_Controller(DTROS):
         self.gain = self.gain_calib
         self.gain_overtaking = 1.3 * self.gain_calib
         self.dist_max = 0.7
+        
         self.static = False
         try:
-            if os.environ["STATIC"]:
-                self.static = True
+            self.static = bool( os.environ["STATIC"])
         except:
             pass
 
