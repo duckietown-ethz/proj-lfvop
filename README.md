@@ -133,9 +133,9 @@ To run the static Duckie avoidance demo perform the following steps:
 
 2. Run the demo container using the prepared image from step 1.
 
-  `~LAPTOP $ docker -H [DUCKIEBOT_NAME].local run -it --rm --net host -e STATIC=1 -v /data/:/data/ duckietown/proj-lfvop:master-arm32v7`
+   `~LAPTOP $ docker -H [DUCKIEBOT_NAME].local run -it --rm --net host -e STATIC=1 -v /data/:/data/ duckietown/proj-lfvop:master-arm32v7`
 
-  Note: The option `-e STATIC=1` reduces the distance which is droven on the left lane, since the obstacle is not moving. By default the option is turned off.
+   Note: The option `-e STATIC=1` reduces the distance which is droven on the left lane, since the obstacle is not moving. By default the option is turned off.
 
 3. Open a new terminal and start the keyboard control
 
@@ -148,16 +148,15 @@ To run the static Duckie avoidance demo perform the following steps:
 The Duckiebot should hopefully safely overtake the Duckie.
 
 #### Running Demo 2 - Static Duckiebot Avoidance
-To run the static Duckiebot avoidance demo perform the following steps:
-(one Duckiebot overtakes another one)
+To run the static Duckiebot avoidance demo (one moving Duckiebot (DB#1) overtakes another non-moving Duckiebot (DB#2)) perform the following steps:
 
-1. Set up two Duckiebots per the instructions in Section 4.2.
+1. Set up both Duckiebots per the instructions in Section 4.2.
 
-2. Run the demo container on both Duckiebots using the prepared image from step 1. If the LED's already have the required colors e.g. when Demos 1-3 was run before with this bot, this step can be skipped.
+2. Run the demo container on both Duckiebots using the prepared image from step 1.
 
    `~LAPTOP $ docker -H [DUCKIEBOT_NAME].local run -it --rm --net host -e STATIC=1 -v /data/:/data/ duckietown/proj-lfvop:master-arm32v7`
 
-   Note: On the non-moving Duckiebot the container is also launched in order to change the colors of the LED's. Once the Duckiebots LED's have changed the color to two reds in the back and two whites in the front (the middle one should be turned off), the container can be killed again by pressing `Ctrl-C` in the according terminal.  
+   Note: On DB#2 the container is also run in order to change the colors of the LED's (If the LED's of DB#2 already have the required colors e.g. when Demos 1-3 was run before on it, this step can be skipped.) Once the Duckiebots LED's have changed the color to two reds in the back and two whites in the front (the middle one should be turned off), the container can be killed again on DB#2 by pressing `Ctrl-C` in the according terminal.  
 
 3. Place the first Duckiebot somewhere in the modified Duckietown. It must be aligned with the lane, and be at least two tile away from the 180 degree turning tile.
 
@@ -177,7 +176,7 @@ For the Dynamic Duckiebot Avoidance demo, the overtaking Duckiebot (DB#1) and th
 1. Set up two Duckiebots per the instructions in Section 4.2.
 
 
-Next we will set up the slow moving DB#2. DB#2 will run standard lane following but the LED pattern need to be changed to the pattern already described in Demo 2. In addition, DB#2 is made as slow as possible by reducing the gain. In order to do that, follow the steps below (make sure to use the DB#2 name for `[DUCKIEBOT_NAME]`):
+Next we will set up the slow moving DB#2. DB#2 will run standard lane following, but the LED's need to be changed to the pattern already described in Demo 2. In addition, DB#2 is made as slow as possible by reducing the gain. In order to do that, follow the steps below (make sure to use the DB#2 name for `[DUCKIEBOT_NAME]`):
 
 2. Run the demo container on DB#2 using the prepared image from step 1 in order to adjust the LED's. If the LED's already have the required colors e.g. when Demos 1-3 was run before with this bot, this step can be skipped.
 
@@ -189,7 +188,7 @@ Next we will set up the slow moving DB#2. DB#2 will run standard lane following 
 
    `~LAPTOP $ dts duckiebot demo --demo_name lane_following --duckiebot_name [DUCKIEBOT_NAME] --package_name duckietown_demos --image duckietown/dt-core:daffy`
 
-2. Start the Keyboard control on DB#2
+2. Start the keyboard control on DB#2
 
    `~LAPTOP $ dts duckiebot keyboard_control [DUCKIEBOT_NAME] --base_image duckietown/dt-core:daffy-amd64`
 
@@ -249,20 +248,20 @@ The lane filter was found to work better after trying different segment threshol
 #### Changing Lane Filter Matrix Mesh Size:
 1. Run a terminal inside a docker container
 
-`~ Laptop $ docker -H DUCKIEBOT_NAME.local run -it --rm --net host -v /data/:/data/ duckietown/proj-lfvop:dynamic_logic-arm32v7 /bin/bash`
+   `~ Laptop $ docker -H DUCKIEBOT_NAME.local run -it --rm --net host -v /data/:/data/ duckietown/proj-lfvop:dynamic_logic-arm32v7 /bin/bash`
 
 2. Update the parameter for the matrix mesh size
 
-`~Docker $ rosparam set /pato/lane_filter_node/matrix_mesh_size VALUE`
+   `~Docker $ rosparam set /pato/lane_filter_node/matrix_mesh_size VALUE`
 
 #### Changing max segment threshold:
 1. Run a terminal inside a docker container
 
-`~ Laptop $ docker -H DUCKIEBOT_NAME.local run -it --rm --net host -v /data/:/data/ duckietown/proj-lfvop:dynamic_logic-arm32v7 /bin/bash`
+   `~ Laptop $ docker -H DUCKIEBOT_NAME.local run -it --rm --net host -v /data/:/data/ duckietown/proj-lfvop:dynamic_logic-arm32v7 /bin/bash`
 
 2. Update the parameter for the matrix mesh size
 
-`~Docker $ rosparam rosparam set /DUCKIEBOT_NAME/line_detector_node/segment_max_threshold VALUE`
+   `~Docker $ rosparam rosparam set /DUCKIEBOT_NAME/line_detector_node/segment_max_threshold VALUE`
 
 For our demonstration, the following values were used: Matrix mesh size of 0.6 and max segment threshold of 15.  For details on how these were selected, please refer to the official project report.
 
@@ -298,8 +297,8 @@ Possible Reason: The Duckiebot is not recognized as a oncoming Duckiebot and is 
 
 First check:
   * While not having lane following active but the demo container running, put DB#1 about 80cm behind DB#2 on the same lane and check the terminal in which the demo container is running. Check for the following prints: `[/DUCKIEBOT_NAME/dynamic_controller_node]: headbot detected` or `[/DUCKIEBOT_NAME/dynamic_controller_node]: backbot detected`
-  * If the Duckiebots have the same direction you should see `backbot detected`, if not :arrow_right: case 1
-  * If the Duckiebots are are facing each other you should see `headbot detected`, if not :arrow_right: case 2
+  * If the Duckiebots have the same direction you should see `backbot detected`, if not --> case 1
+  * If the Duckiebots are are facing each other you should see `headbot detected`, if not --> case 2
 
 Resolution: Start the `duckietown/proj-lfvop:master-arm32v7` container again, using the option -e THRESHOLD=VALUE (default is 235).
   case 1: Use a value above 235, maybe 240 (this will make the code treat more Duckiebots as backbots, dont go above 245)
