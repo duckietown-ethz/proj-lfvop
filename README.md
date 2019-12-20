@@ -198,7 +198,7 @@ Next we will set up the slow moving DB#2. DB#2 will run standard lane following,
 
 5. In a new terminal run the demo container again on DB#2, but this time with the `/bin/bash` addition:
 
-   `~ Laptop $ docker -H [DUCKIEBOT_NAME].local run -it --rm --net host -v /data/:/data/ duckietown/proj-lfvop:dynamic_logic-arm32v7 /bin/bash`
+   `~ Laptop $ docker -H [DUCKIEBOT_NAME].local run -it --rm --net host -v /data/:/data/ duckietown/proj-lfvop:master-arm32v7 /bin/bash`
 
 6. Run the following to adjust the gain in the `/bin/bash` just started in the last step
 
@@ -224,7 +224,7 @@ Next, DB#1 will be set up with our container and increased the gain (make sure t
 
 9. In a new terminal run the demo container again on DB#1, but this time with the `/bin/bash` addition:
 
-   `~ Laptop $ docker -H [DUCKIEBOT_NAME].local run -it --rm --net host -v /data/:/data/ duckietown/proj-lfvop:dynamic_logic-arm32v7 /bin/bash`
+   `~ Laptop $ docker -H [DUCKIEBOT_NAME].local run -it --rm --net host -v /data/:/data/ duckietown/proj-lfvop:master-arm32v7 /bin/bash`
 
 10. Run the following to adjust the gain in the `/bin/bash` just started in the last step.
 
