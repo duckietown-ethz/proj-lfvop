@@ -252,7 +252,7 @@ The lane filter was found to work better after trying different segment threshol
 #### Changing Lane Filter Matrix Mesh Size:
 1. Run a terminal inside a docker container
 
-   `~ Laptop $ docker -H DUCKIEBOT_NAME.local run -it --rm --net host -v /data/:/data/ duckietown/proj-lfvop:dynamic_logic-arm32v7 /bin/bash`
+   `~ Laptop $ docker -H DUCKIEBOT_NAME.local run -it --rm --net host -v /data/:/data/ duckietown/proj-lfvop:master-arm32v7 /bin/bash`
 
 2. Update the parameter for the matrix mesh size
 
@@ -261,7 +261,7 @@ The lane filter was found to work better after trying different segment threshol
 #### Changing max segment threshold:
 1. Run a terminal inside a docker container
 
-   `~ Laptop $ docker -H DUCKIEBOT_NAME.local run -it --rm --net host -v /data/:/data/ duckietown/proj-lfvop:dynamic_logic-arm32v7 /bin/bash`
+   `~ Laptop $ docker -H DUCKIEBOT_NAME.local run -it --rm --net host -v /data/:/data/ duckietown/proj-lfvop:master-arm32v7 /bin/bash`
 
 2. Update the parameter for the matrix mesh size
 
