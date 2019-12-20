@@ -147,7 +147,7 @@ To run the static Duckie avoidance demo perform the following steps:
 
 4. Grab one standard yellow Duckie from your usual Duckie supply and place the Duckie somewhere on the straight lane, at least one tile away from the turning tile.
 
-5. Use the keyboard control to start the lane following. This is done by pressing `a` within the keyboard control, , press `s` to stop.
+5. Use the keyboard control to start the lane following. This is done by pressing `a` within the keyboard control, press `s` to stop.
 
 The Duckiebot should hopefully safely overtake the Duckie.
 
@@ -170,7 +170,7 @@ To run the static Duckiebot avoidance demo (one moving Duckiebot (DB#1) overtake
 
    `~LAPTOP $ dts duckiebot keyboard_control [DUCKIEBOT_NAME] --base_image duckietown/dt-core:daffy-amd64`
 
-6. Use the keyboard control to start the lane following. This is done by pressing `a` within the keyboard control, , press `s` to stop.
+6. Use the keyboard control to start the lane following. This is done by pressing `a` within the keyboard control, press `s` to stop.
 
 The overtaking Duckiebot should hopefully safely overtake the standing Duckiebot.
 
@@ -238,7 +238,7 @@ Next, DB#1 will be set up with our container and increased the gain (make sure t
 
 Now, you are ready to go
 
-12. Use the keyboard control windows of DB#1 and DB#2 to start lane following for both the Duckiebots. This is done by pressing `a` within the keyboard control windows, , press `s` to stop.
+12. Use the keyboard control windows of DB#1 and DB#2 to start lane following for both the Duckiebots. This is done by pressing `a` within the keyboard control windows, press `s` to stop.
 
 The faster DB#1 should overtake DB#2.
 
@@ -324,6 +324,6 @@ This repository is based on the dt-core image. It uses the master launch file fr
 <img src="/demo_media/code_structure.png" width="400" >
 </figure>
 
-The dynamic_obstacle_avoidance package includes three nodes. The led_detection_node runs the duckiebot detection based on their head and back lights. It publishes two messages for head and back bots separately: the state, which is a boolean indicating if a Duckiebot was detected, and an array with position and velocity of the detected Duckiebots. The duckie_detection_node runs the Duckie detection. It publishes a custom message with state of detected duckie (0: no duckie, 1: Duckie on right lane, 2: Duckie on left lane) and location.
+The dynamic_obstacle_avoidance package includes three nodes. The led_detection_node runs the duckiebot detection based on their head and back lights. It publishes two messages for head and back bots separately: the state, which is a boolean indicating if a Duckiebot was detected, and an array with position and velocity of the detected Duckiebots. The duckie_detection_node runs the Duckie detection. It publishes a custom message with state of detected duckie (0: no duckie, 1: Duckie on right lane, 2: Duckie on left lane) and location. Both detection nodes publish a debug image where the detected obstacles are visualized.
 
 The dynamic_obstacle_node is responsible for the logic to control the overtaking maneuver. It subscribes to the car_cmd topic and publishes it again. The car_cmd is unchanged, except if an emergency stop is detected and a zero speed setpoint is published to the car. The dynamic_obstacle_node checks if all conditions are given to start the overtaking maneuver and then controls it. The overtaking maneuver is performed while still running the standard lane following. The changing of the lane is implemented by gradually increasing the lane_controller parameter d_offset. As a future extension, the gain parameter could also be adjusted to drive faster during overtaking. However due to instability of lane following when driving too fast, this lines have been commented out in the current version of the code.
